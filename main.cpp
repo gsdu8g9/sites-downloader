@@ -303,7 +303,7 @@ string get_path(const string& current, const string& target)
 return relative;
 }
 
-string absolute_path(string path)
+string absolute_path(const string& path)
 {
 	string out, act;
 	vector<string> st;
