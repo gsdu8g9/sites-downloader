@@ -381,8 +381,9 @@ int main(int argc, char **argv)
 	cout << get_path(a,b) << endl;*/
 	if(argc<2)
 	{
-		cout << "Usage: ... <page>\n";
-		abort();
+		cout << "Usage: sites-downloader <site> [options]\nOptions:\n    -iPAGE_URL      used to ignore urls with prefix PAGE_URL\n    -wWRONGS_FILE   used to repair/continue download page, WRONGS_FILE is file to which the program prints the error logs, you can use only one this option\n";
+		// abort();
+		exit(1);
 	}
 	string site, adress, server, directory, site_prefix;
 	queue<string> sites;
