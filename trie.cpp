@@ -42,6 +42,7 @@ return actual_node->is_pattern;
 
 void Trie::insert(const string& name)
 {
+	this->once_operation.lock();
 	node* actual_node=this->root;
 	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
@@ -50,10 +51,12 @@ void Trie::insert(const string& name)
 		actual_node=actual_node->son[static_cast<unsigned char>(*i)];
 	}
 	actual_node->is_pattern=true;
+	this->once_operation.unlock();
 }
 
 void Trie::erase(const string& name)
 {
+	this->once_operation.lock();
 	stack<node*> nodes_stack;
 	nodes_stack.push(this->root);
 	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
@@ -72,4 +75,18 @@ void Trie::erase(const string& name)
 		nodes_stack.pop();
 		delete nodes_stack.top()->son[removed_node->key];
 	}
+	this->once_operation.unlock();
+}
+
+bool IgnoreTrie::is_ignore(const string& name) const
+{
+	node* actual_node=this->root;
+	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
+	{
+		if(actual_node->son[static_cast<unsigned char>(*i)]==NULL)
+			return false;
+		actual_node=actual_node->son[static_cast<unsigned char>(*i)];
+		if(actual_node->is_pattern) return true;
+	}
+return false;
 }

@@ -12,9 +12,10 @@ export CXX = g++
 export LINK = g++
 endif
 
-export CFLAGS = -O3
-export CXXFLAGS = -O3 -c
-export LFLAGS = -s -O3
+# Shell commands
+export CFLAGS = -O3 -c
+export CXXFLAGS = -O3 -c -std=c++11
+export LFLAGS = -s -O3 -pthread
 export RM = rm -f
 
 .PHONY: all clean dist-clean
@@ -27,7 +28,7 @@ sites-downloader: main1.cpp
 sd: main.o functions.o aho.o trie.o
 	$(LINK) $^ $(LFLAGS) -o $@
 
-main.o: main.cpp
+main.o: main.cpp functions.hpp aho.hpp trie.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 functions.o: functions.cpp functions.hpp

@@ -1,10 +1,12 @@
 #include <string>
+#include <mutex>
 
 #pragma once
 
 class Trie
 {
-private:
+protected:
+	std::mutex once_operation;
 	struct node;
 	node* root;
 public:
@@ -14,4 +16,13 @@ public:
 	bool search(const std::string&) const;
 	void insert(const std::string&);
 	void erase(const std::string&);
+};
+
+
+class IgnoreTrie : public Trie
+{
+public:
+	IgnoreTrie(){}
+	~IgnoreTrie(){}
+	bool is_ignore(const std::string&) const;
 };
