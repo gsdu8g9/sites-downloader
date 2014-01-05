@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <cstring>
 
 #pragma once
 
@@ -61,9 +62,12 @@ public:
 
 class const_string
 {
-	const char* _M_str;
+	char* _M_str;
 public:
-	explicit const_string(const char* _str): _M_str(_str){}
+	explicit const_string(const char* _str): _M_str(new char[strlen(_str)+1])
+	{
+		memcpy(this->_M_str, _str, strlen(_str)+1);
+	}
 	~const_string(){}
 
 	const char* str() const

@@ -14,7 +14,12 @@ public:
 	~Trie();
 
 	bool search(const std::string&) const;
-	void insert(const std::string&);
+
+	/*
+	* Returns false if all are OK or
+	* returns true if element already exists.
+	*/
+	bool insert(const std::string&);
 	void erase(const std::string&);
 };
 
@@ -24,5 +29,5 @@ class IgnoreTrie : public Trie
 public:
 	IgnoreTrie(){}
 	~IgnoreTrie(){}
-	bool is_ignore(const std::string&) const;
+	bool is_ignored(const std::string&) const;
 };

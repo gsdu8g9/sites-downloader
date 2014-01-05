@@ -67,11 +67,12 @@ string without_end_after_slash(const string& str)
 return str;
 }
 
-bool is_wrong_name(const string& str)
+bool is_good_name(const string& str)
 {
 	for(int i=str.size()-1; i>=0; --i)
-		if(str[i]=='%' || str[i]==';') return true;
-return false;
+		if((str[i]=='\'' || str[i]=='"') && (i==0 || str[i-1]!='\\'))
+			return false;
+return true;
 }
 
 bool compare_with_end(const string& str, const string& end)
@@ -96,6 +97,7 @@ string to_shell(const string& str)
 			case '>': out+="\\>";break;
 			case '<': out+="\\<";break;
 			case '*': out+="\\*";break;
+			case ';': out+="\\;";break;
 			default: out+=*i;
 		}
 	}
@@ -168,6 +170,64 @@ string GetFileContents(const string& file_name)
 			out+='\n';
 			out+=tmp;
 		}
+	}
+return out;
+}
+
+void eraseHTTPprefix(std::string& str)
+{
+	if(0==str.compare(0, 7, "http://"))
+		str.erase(0, 7);
+	else if(0==str.compare(0, 8, "https://"))
+		str.erase(0, 8);
+}
+
+std::string convert_from_HTML(const std::string& str)
+{
+	string out;
+	for(int i=0, slen=str.size(); i<slen; ++i)
+	{
+		if(0==str.compare(i, 6, "&quot;"))
+		{
+			i+=5;
+			out+='"';
+		}
+		else if(0==str.compare(i, 5, "&amp;"))
+		{
+			i+=4;
+			out+='&';
+		}
+		else if(0==str.compare(i, 4, "&lt;"))
+		{
+			i+=3;
+			out+='<';
+		}
+		else if(0==str.compare(i, 4, "&gt;"))
+		{
+			i+=3;
+			out+='>';
+		}
+		else
+			out+=str[i];
+	}
+return out;
+}
+
+bool is_number(const string& str)
+{
+	if(str.empty()) return false;
+	for(int i=0; i<str.size(); ++i)
+		if(!(str[i]>='0' && str[i]<='9')) return false;
+return true;
+}
+
+int to_int(const string& str)
+{
+	int out=0;
+	for(int i=0; i<str.size(); ++i)
+	{
+		out*=10;
+		out+=str[i]-'0';
 	}
 return out;
 }

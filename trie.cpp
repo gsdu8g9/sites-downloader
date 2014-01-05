@@ -40,7 +40,7 @@ bool Trie::search(const string& name) const
 return actual_node->is_pattern;
 }
 
-void Trie::insert(const string& name)
+bool Trie::insert(const string& name)
 {
 	this->once_operation.lock();
 	node* actual_node=this->root;
@@ -50,8 +50,14 @@ void Trie::insert(const string& name)
 			actual_node->son[static_cast<unsigned char>(*i)]=new node(*i);
 		actual_node=actual_node->son[static_cast<unsigned char>(*i)];
 	}
+	if(actual_node->is_pattern)
+	{
+		this->once_operation.unlock();
+		return true;
+	}
 	actual_node->is_pattern=true;
 	this->once_operation.unlock();
+return false;
 }
 
 void Trie::erase(const string& name)
@@ -78,7 +84,7 @@ void Trie::erase(const string& name)
 	this->once_operation.unlock();
 }
 
-bool IgnoreTrie::is_ignore(const string& name) const
+bool IgnoreTrie::is_ignored(const string& name) const
 {
 	node* actual_node=this->root;
 	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
