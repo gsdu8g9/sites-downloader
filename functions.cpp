@@ -70,7 +70,7 @@ return str;
 bool is_good_name(const string& str)
 {
 	for(int i=str.size()-1; i>=0; --i)
-		if((str[i]=='\'' || str[i]=='"') && (i==0 || str[i-1]!='\\'))
+		if((str[i]=='\'' || str[i]=='"' || str[i]==';') && (i==0 || str[i-1]!='\\'))
 			return false;
 return true;
 }

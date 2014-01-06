@@ -96,7 +96,8 @@ MutexQueue<unsigned> free_threads;
 
 vector<thread> threads;
 
-string server, root_dir;
+string server, root_dir, download_command;
+bool bad_server_name=true;
 Trie sites_base, wrong_sites_base;
 IgnoreTrie ignored_sites;
 special_aho model_parse;
@@ -162,7 +163,7 @@ download_function_begin:
 	cout << "\033[01;34mDownloading: " << site << "\033[00m\n" << flush;
 	loging.unlock();
 	string tmp_file_name=string(tmp_dir.name())+"/download"+myto_string(thread_id);
-	if(0==system("wget --no-check-certificate --connect-timeout=23 --tries=3 --no-use-server-timestamps --unlink -x -nv "+to_shell(site)+" 2> "+tmp_file_name))
+	if(0==system(download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
 		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file, new_content;
 		for(int i=5, tfs=tmp_file.size(); i<tfs; ++i)
@@ -176,6 +177,14 @@ download_function_begin:
 			}
 		}
 		if(downloaded_file_name.empty()) goto download_error;
+		if(bad_server_name)
+		{
+			if(0==server.compare(0, 4, downloaded_file_name, 0, 4))
+				bad_server_name=false;
+			else if(0==server.compare(0, 4, "www."))
+				server.erase(0, 4);
+			else server="www."+server;
+		}
 		loging.lock();
 		cout << "\033[01;34mSite: " << site << "\n\033[01;32mFile: " << downloaded_file_name << "\033[00m\n" << tmp_file << flush;
 		loging.unlock();
@@ -196,7 +205,7 @@ download_function_begin:
 					--i;
 					new_content+=parse.pattern(patt_id).first;
 				}
-				else 
+				else
 				{
 					new_content+=parse.pattern(patt_id).first+string_char;
 					if(string_char!='\'' && string_char!='"') continue;
@@ -341,6 +350,8 @@ int main(int argc, char **argv)
 				else
 					continue;
 			}
+			if(0==site.compare(0, 4, "www."))
+			site.erase(0, 4);
 			cout << "Ignored prefix: " << site << endl;
 			ignored_sites.insert(site);
 		}
@@ -433,6 +444,9 @@ int main(int argc, char **argv)
 	int eraser=-1;
 	while(++eraser<server.size() && server[eraser]!='/');
 	server.erase(eraser);
+	if(0==server.compare(0, 4, "www."))
+	server.erase(0, 4);
+	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -nv -x -nH --directory-prefix="+to_shell(server)+" -nc ";
 	LOG(server);
 	system("pwd > "+string(tmp_dir.name())+"/pwd");
 	root_dir=GetFileContents(string(tmp_dir.name())+"/pwd");
