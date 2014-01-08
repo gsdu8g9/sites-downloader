@@ -15,6 +15,15 @@
 #define LOG(x) std::cerr << #x << ": " << x << endl;
 #define INLINELOG(x) std::cerr << #x << ": " << x << flush;
 
+class DownloadTrieNodeClass
+{
+	friend class DownloadTrie;
+};
+
+class DownloadTrie : public _Trie<DownloadTrieNodeClass>
+{
+};
+
 template<typename type>
 class MutexQueue
 {

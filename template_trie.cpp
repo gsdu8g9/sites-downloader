@@ -1,4 +1,7 @@
+#ifndef CPRST
 #include "trie.cpp"
+#endif
+
 #include <cstdlib>
 
 #ifdef OLD
@@ -158,111 +161,142 @@ namespace var_base
 }
 #endif
 
-#include <map>
+#ifdef CPRST
+#include <string>
+#include <stack>
 
-class CompressedTrie
+template<class T>
+class _Trie
 {
 protected:
 #if __cplusplus >= 201103L
 	std::mutex once_operation;
 #endif
-	struct node;
+	struct node
+	{
+
+		bool is_pattern;
+		unsigned char key;
+		node* parent;
+		node* son[256];
+		T* value;
+
+		node(node* new_parent, const unsigned char new_key=0, bool new_is_pattern=false): is_pattern(new_is_pattern), key(new_key), parent(new_parent)
+		{
+			for(int i=0; i<256; ++i)
+				son[i]=NULL;
+		}
+
+		~node()
+		{
+			if(this->value!=NULL)
+				delete this->value;
+			for(int i=0; i<256; ++i)
+				if(this->son[i]!=NULL) delete this->son[i];
+		}
+	};
 	node* root;
 public:
-	CompressedTrie();
-	~CompressedTrie();
+	class iterator : public std::iterator<std::input_iterator_tag, T>
+	{
+		node* p;
+		iterator(node* x): p(x){}
+	public:
+		iterator(const iterator& _it): p(_it.p){}
+		bool operator==(const iterator& _it) {return this->p==_it.p;}
+		bool operator!=(const iterator& _it) {return this->p!=_it.p;}
+		T& operator*() {return *this->p->value;}
+		friend class _Trie; 
+	};
 
-	bool search(const std::string&) const;
+	_Trie(): root(new node(NULL)){}
+
+	~_Trie()
+	{delete this->root;}
+
+#if __cplusplus >= 201103L
+	void lock(){this->once_operation.lock();}
+	void unlock(){this->once_operation.unlock();}
+#endif
+
+	iterator end() const
+	{return iterator(NULL);}
+
+	iterator search(const std::string&) const;
 
 	/*
-	* Returns false if all are OK or
-	* returns true if element already exists.
+	* second is true if all is OK or
+	* false if element already exists.
 	*/
-	bool insert(const std::string&);
+	std::pair<iterator, bool> insert(const std::string&);
 	void erase(const std::string&);
+	std::string get_name(const iterator&);
 };
 
-struct CompressedTrie::node
-{
-	typedef map<unsigned char, node*> son_type;
-	son_type son;
-	unsigned char key;
-	bool is_pattern;
-
-	node(const unsigned char new_key=0, bool new_is_pattern=false): key(new_key), is_pattern(new_is_pattern){}
-
-	~node(){}
-};
-
-CompressedTrie::CompressedTrie(): root(new node)
-{}
-
-CompressedTrie::~CompressedTrie()
-{delete this->root;}
-
-bool CompressedTrie::search(const string& name) const
+template<class T>
+typename _Trie<T>::iterator _Trie<T>::search(const std::string& name) const
 {
 	node* actual_node=this->root;
-	node::son_type::iterator it;
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
+	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
-		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
-			return false;
-		actual_node=it->second;
+		if(actual_node->son[static_cast<unsigned char>(*i)]==NULL)
+			return this->end();
+		actual_node=actual_node->son[static_cast<unsigned char>(*i)];
 	}
-return actual_node->is_pattern;
+return (actual_node->is_pattern ? iterator(actual_node):this->end());
 }
 
-bool CompressedTrie::insert(const string& name)
+template<class T>
+std::pair<typename _Trie<T>::iterator, bool> _Trie<T>::insert(const std::string& name)
 {
 #if __cplusplus >= 201103L
 	this->once_operation.lock();
 #endif
 	node* actual_node=this->root;
-	node::son_type::iterator it;
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
+	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
-		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
-			it=actual_node->son.insert(make_pair(*i, new node(*i))).first;
-		actual_node=it->second;
+		if(actual_node->son[static_cast<unsigned char>(*i)]==NULL)
+			actual_node->son[static_cast<unsigned char>(*i)]=new node(actual_node, *i);
+		actual_node=actual_node->son[static_cast<unsigned char>(*i)];
 	}
 	if(actual_node->is_pattern)
 	{
 	#if __cplusplus >= 201103L
 		this->once_operation.unlock();
 	#endif
-		return true;
+		return make_pair(iterator(actual_node), false);
 	}
 	actual_node->is_pattern=true;
 #if __cplusplus >= 201103L
 	this->once_operation.unlock();
 #endif
-	return false;
+	return make_pair(iterator(actual_node), true);
 }
 
-void CompressedTrie::erase(const string& name)
+template<class T>
+void _Trie<T>::erase(const std::string& name)
 {
 #if __cplusplus >= 201103L
 	this->once_operation.lock();
 #endif
-	stack<node*> nodes_stack;
-	node::son_type::iterator it;
+	std::stack<node*> nodes_stack;
 	nodes_stack.push(this->root);
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
+	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
-		if(nodes_stack.top()->son.end()==(it=nodes_stack.top()->son.find(*i)))
+		if(nodes_stack.top()->son[static_cast<unsigned char>(*i)]==NULL)
 			goto erase_end;
-		nodes_stack.push(it->second);
+		nodes_stack.push(nodes_stack.top()->son[static_cast<unsigned char>(*i)]);
 	}
 	nodes_stack.top()->is_pattern=false;
 	node* removed_node;
 	while(nodes_stack.size()>1)
 	{
 		removed_node=nodes_stack.top();
-		if(!removed_node->son.empty())
-			goto erase_end;
+		for(int i=0; i<256; ++i)
+			if(removed_node->son[i]!=NULL)
+				goto erase_end;
 		nodes_stack.pop();
-		nodes_stack.top()->son.erase(removed_node->key); // we remove link
+		nodes_stack.top()->son[removed_node->key]=NULL; // we remove link
 		delete removed_node;
 	}
 erase_end:;
@@ -270,6 +304,14 @@ erase_end:;
 	this->once_operation.unlock();
 #endif
 }
+
+template<class T>
+std::string _Trie<T>::get_name(const iterator&)
+{
+	return "";
+}
+
+#endif
 
 using namespace std;
 
@@ -279,7 +321,10 @@ inline T abs(T x)
 
 unsigned rd()
 {return abs(rand());}
+
 #include <iostream>
+struct lol{};
+
 int main()
 {
 	cout << __cplusplus << endl;
@@ -295,14 +340,14 @@ int main()
 	return 0;*/
 	srand(182431774);
 #ifdef CPRST
-	CompressedTrie my_trie;
+	_Trie<lol> my_trie;
 #elif !defined OLD
 	Trie my_trie;
 #endif
 	for(int i=0; i<10000; ++i)
 	{
 		string tmp;
-		for(int i=rd()%700; i>=0; --i)
+		for(int i=rd()%400; i>=0; --i)
 			tmp+=static_cast<char>(rd()%256);
 		switch(rd()%3)
 		{
