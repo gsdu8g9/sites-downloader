@@ -309,11 +309,11 @@ download_function_begin:
 	goto download_function_begin;
 }
 
-void control_exit(int ___nothing=0)
+void control_exit(int=0)
 {
 	download_queue.lock();
 	free_threads.lock();
-	for(int i=0; i<THREADS; ++i)
+	for(unsigned i=0; i<THREADS; ++i)
 		if(threads[i].joinable())
 			threads[i].detach();
 	remove_r(tmp_dir);
@@ -440,7 +440,7 @@ int main(int argc, char **argv)
 	cerr << THREADS << endl;
 	global_lock.lock();
 	threads.resize(THREADS);
-	for(int i=1; i<THREADS; ++i)
+	for(unsigned i=1; i<THREADS; ++i)
 		free_threads.push(i);
 	// Extract server name
 	if(download_queue.empty())
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
 	}
 	server=download_queue.front();
 	eraseHTTPprefix(server);
-	int eraser=-1;
+	unsigned eraser=-1;
 	while(++eraser<server.size() && server[eraser]!='/');
 	server.erase(eraser);
 	if(0==server.compare(0, 4, "www."))
@@ -467,7 +467,7 @@ int main(int argc, char **argv)
 	// Run downloading
 	threads[0]=thread(download, 0);
 	global_lock.lock();
-	for(int i=0; i<THREADS; ++i)
+	for(unsigned i=0; i<THREADS; ++i)
 		if(threads[i].joinable())
 			threads[i].join();
 return 0;

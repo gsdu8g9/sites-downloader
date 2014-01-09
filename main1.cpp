@@ -37,10 +37,10 @@ namespace aho
 			int ver=0; // actual node (vertex)
 			for(int s=word.size(), i=0; i<s; ++i)
 			{
-				if(graph[ver].E[word[i]]!=0) ver=graph[ver].E[word[i]]; // actual view node = next node
+				if(graph[ver].E[static_cast<unsigned char>(word[i])]!=0) ver=graph[ver].E[static_cast<unsigned char>(word[i])]; // actual view node = next node
 				else
 				{
-					ver=graph[ver].E[word[i]]=graph.size(); // add id of new node
+					ver=graph[ver].E[static_cast<unsigned char>(word[i])]=graph.size(); // add id of new node
 					graph.push_back(node(word[i])); // add new node
 				}
 			}
@@ -252,8 +252,8 @@ namespace var_base
 		_v[0].is=str[0]=='1';
 		_v[0].ignore=str[1]=='1';
 		_v[0].file=str[2]=='1';
-		int i=3;
-		char c;
+		unsigned i=3;
+		unsigned char c;
 		while(i<str.size())
 		{
 			c=str[i];
@@ -289,16 +289,16 @@ string get_path(const string& current, const string& target)
 {
 	string relative;
 	int i=0, s=0;
-	while(i<min(current.size(),target.size()) && current[i]==target[i])
+	while(static_cast<unsigned>(i)<min(current.size(),target.size()) && current[i]==target[i])
 		++i;
 	--i;
 	while(i>=0 && current[i]!='/')
 		--i;
-	for(int j=++i; j<current.size(); ++j)
+	for(unsigned j=++i; j<current.size(); ++j)
 		if(current[j]=='/') ++s;
 	while(--s>=0)
 		relative+="../";
-	for(;i<target.size(); ++i)
+	for(;static_cast<unsigned>(i)<target.size(); ++i)
 		relative+=target[i];
 return relative;
 }
@@ -307,7 +307,7 @@ string absolute_path(const string& path)
 {
 	string out, act;
 	vector<string> st;
-	for(int i=0; i<path.size(); ++i)
+	for(unsigned i=0; i<path.size(); ++i)
 	{
 		act+=path[i];
 		//cout << i << ": " << act << " " << endl;
@@ -319,14 +319,14 @@ string absolute_path(const string& path)
 		}
 	}
 	if(act!=".") st.push_back(act);
-	for(int i=0; i<st.size(); ++i)
+	for(unsigned i=0; i<st.size(); ++i)
 		out+=st[i];
 return out;
 }
 
 void remove_hash(string& str)
 {
-	int i=-1;
+	unsigned i=-1;
 	while(++i<str.size() && str[i]!='#');
 	if(i<str.size() && str[i]=='#') str.erase(i);
 }
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
 			site_prefix="https://";
 		}
 		cout << site << " " << site_prefix << endl;
-		for(int i=0; i<site.size() && site[i]!='/'; ++i)
+		for(unsigned i=0; i<site.size() && site[i]!='/'; ++i)
 			server+=site[i];
 
 		___empty=system("pwd > lol.shell");

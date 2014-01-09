@@ -17,16 +17,16 @@ string get_path(const string& current, const string& target)
 {
 	string relative;
 	int i=0, s=0;
-	while(i<min(current.size(),target.size()) && current[i]==target[i])
+	while(static_cast<unsigned>(i)<min(current.size(),target.size()) && current[i]==target[i])
 		++i;
 	--i;
 	while(i>=0 && current[i]!='/')
 		--i;
-	for(int j=++i; j<current.size(); ++j)
+	for(unsigned j=static_cast<unsigned>(++i); j<current.size(); ++j)
 		if(current[j]=='/') ++s;
 	while(--s>=0)
 		relative+="../";
-	for(;i<target.size(); ++i)
+	for(;static_cast<unsigned>(i)<target.size(); ++i)
 		relative+=target[i];
 return relative;
 }
@@ -35,7 +35,7 @@ string absolute_path(const string& path)
 {
 	string out, act;
 	vector<string> st;
-	for(int i=0; i<path.size(); ++i)
+	for(unsigned i=0; i<path.size(); ++i)
 	{
 		act+=path[i];
 		//cout << i << ": " << act << " " << endl;
@@ -47,14 +47,14 @@ string absolute_path(const string& path)
 		}
 	}
 	if(act!=".") st.push_back(act);
-	for(int i=0; i<st.size(); ++i)
+	for(unsigned i=0; i<st.size(); ++i)
 		out+=st[i];
 return out;
 }
 
 void remove_hash(string& str)
 {
-	int i=-1;
+	unsigned i=-1;
 	while(++i<str.size() && str[i]!='#');
 	if(i<str.size() && str[i]=='#') str.erase(i);
 }
@@ -216,7 +216,7 @@ return out;
 bool is_number(const string& str)
 {
 	if(str.empty()) return false;
-	for(int i=0; i<str.size(); ++i)
+	for(unsigned i=0; i<str.size(); ++i)
 		if(!(str[i]>='0' && str[i]<='9')) return false;
 return true;
 }
@@ -224,7 +224,7 @@ return true;
 int to_int(const string& str)
 {
 	int out=0;
-	for(int i=0; i<str.size(); ++i)
+	for(unsigned i=0; i<str.size(); ++i)
 	{
 		out*=10;
 		out+=str[i]-'0';

@@ -283,15 +283,15 @@ unsigned rd()
 int main()
 {
 	cout << __cplusplus << endl;
-	/*Trie ttt;
-	string k;
-	k+=char(-47);
-	k+=char(1);
-	k+=char(1);
-	k+=char(11);
-	ttt.insert(k);
-	// ttt.insert("my name is troll");
-	// cout << ttt.search("my name is troll") << endl;
+	/*CompressedTrie ttt;
+	// string k;
+	// k+=char(-47);
+	// k+=char(1);
+	// k+=char(1);
+	// k+=char(11);
+	// ttt.insert(k);
+	ttt.insert("my name is troll");
+	cout << ttt.search("my name is troll") << endl;
 	return 0;*/
 	srand(182431774);
 #ifdef CPRST
@@ -299,10 +299,10 @@ int main()
 #elif !defined OLD
 	Trie my_trie;
 #endif
-	for(int i=0; i<10000; ++i)
+	for(int i=0; i<800000; ++i)
 	{
 		string tmp;
-		for(int i=rd()%700; i>=0; --i)
+		for(int i=rd()%10; i>=0; --i)
 			tmp+=static_cast<char>(rd()%256);
 		switch(rd()%3)
 		{
