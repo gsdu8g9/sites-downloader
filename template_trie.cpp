@@ -163,7 +163,6 @@ namespace var_base
 
 #ifdef CPRST
 #include <string>
-#include <stack>
 
 template<class T>
 class _Trie
@@ -181,7 +180,7 @@ protected:
 		node* son[256];
 		T* value;
 
-		node(node* new_parent, const unsigned char new_key=0, bool new_is_pattern=false): is_pattern(new_is_pattern), key(new_key), parent(new_parent)
+		node(node* new_parent, const unsigned char new_key=0, bool new_is_pattern=false): is_pattern(new_is_pattern), key(new_key), parent(new_parent), value(NULL)
 		{
 			for(int i=0; i<256; ++i)
 				son[i]=NULL;
@@ -267,6 +266,7 @@ std::pair<typename _Trie<T>::iterator, bool> _Trie<T>::insert(const std::string&
 		return make_pair(iterator(actual_node), false);
 	}
 	actual_node->is_pattern=true;
+	actual_node->value=new T;
 #if __cplusplus >= 201103L
 	this->once_operation.unlock();
 #endif
@@ -279,24 +279,19 @@ void _Trie<T>::erase(const std::string& name)
 #if __cplusplus >= 201103L
 	this->once_operation.lock();
 #endif
-	std::stack<node*> nodes_stack;
-	nodes_stack.push(this->root);
-	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
-	{
-		if(nodes_stack.top()->son[static_cast<unsigned char>(*i)]==NULL)
-			goto erase_end;
-		nodes_stack.push(nodes_stack.top()->son[static_cast<unsigned char>(*i)]);
-	}
-	nodes_stack.top()->is_pattern=false;
+	node* actual_node=this->search(name).p;
+	if(actual_node==NULL)
+		goto erase_end;
+	actual_node->is_pattern=false;
 	node* removed_node;
-	while(nodes_stack.size()>1)
+	while(actual_node!=this->root)
 	{
-		removed_node=nodes_stack.top();
+		removed_node=actual_node;
 		for(int i=0; i<256; ++i)
 			if(removed_node->son[i]!=NULL)
 				goto erase_end;
-		nodes_stack.pop();
-		nodes_stack.top()->son[removed_node->key]=NULL; // we remove link
+		actual_node=actual_node->parent;
+		actual_node->son[removed_node->key]=NULL; // we remove link
 		delete removed_node;
 	}
 erase_end:;
@@ -305,10 +300,31 @@ erase_end:;
 #endif
 }
 
-template<class T>
-std::string _Trie<T>::get_name(const iterator&)
+namespace std
 {
-	return "";
+	template <class BidirectionalIterator>
+	void reverse (BidirectionalIterator first, BidirectionalIterator last)
+	{
+		while((first!=last) && (first!=--last))
+		{
+			std::iter_swap(first,last);
+			++first;
+		}
+	}
+}
+
+template<class T>
+std::string _Trie<T>::get_name(const iterator& _it)
+{
+	std::string out;
+	node* actual_node=_it.p;
+	while(actual_node!=this->root)
+	{
+		out+=actual_node->key;
+		actual_node=actual_node->parent;
+	}
+	std::reverse(out.begin(), out.end());
+return out;
 }
 
 #endif
@@ -328,26 +344,26 @@ struct lol{};
 int main()
 {
 	cout << __cplusplus << endl;
-	/*Trie ttt;
-	string k;
-	k+=char(-47);
-	k+=char(1);
-	k+=char(1);
-	k+=char(11);
-	ttt.insert(k);
-	// ttt.insert("my name is troll");
-	// cout << ttt.search("my name is troll") << endl;
-	return 0;*/
+	_Trie<lol> ttt;
+	// string k;
+	// k+=char(-47);
+	// k+=char(1);
+	// k+=char(1);
+	// k+=char(11);
+	// ttt.insert(k);
+	ttt.insert("my name is troll");
+	cout << (ttt.end()!=ttt.search("my name is troll")) << ": " << ttt.get_name(ttt.search("my name is troll")) << endl;
+	// return 0;
 	srand(182431774);
 #ifdef CPRST
 	_Trie<lol> my_trie;
 #elif !defined OLD
 	Trie my_trie;
 #endif
-	for(int i=0; i<10000; ++i)
+	for(int i=0; i<20000; ++i)
 	{
 		string tmp;
-		for(int i=rd()%400; i>=0; --i)
+		for(int j=rd()%400; j>=0; --j)
 			tmp+=static_cast<char>(rd()%256);
 		switch(rd()%3)
 		{

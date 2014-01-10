@@ -158,119 +158,6 @@ namespace var_base
 }
 #endif
 
-#include <map>
-
-class CompressedTrie
-{
-protected:
-#if __cplusplus >= 201103L
-	std::mutex once_operation;
-#endif
-	struct node;
-	node* root;
-public:
-	CompressedTrie();
-	~CompressedTrie();
-
-	bool search(const std::string&) const;
-
-	/*
-	* Returns false if all are OK or
-	* returns true if element already exists.
-	*/
-	bool insert(const std::string&);
-	void erase(const std::string&);
-};
-
-struct CompressedTrie::node
-{
-	typedef map<unsigned char, node*> son_type;
-	son_type son;
-	unsigned char key;
-	bool is_pattern;
-
-	node(const unsigned char new_key=0, bool new_is_pattern=false): key(new_key), is_pattern(new_is_pattern){}
-
-	~node(){}
-};
-
-CompressedTrie::CompressedTrie(): root(new node)
-{}
-
-CompressedTrie::~CompressedTrie()
-{delete this->root;}
-
-bool CompressedTrie::search(const string& name) const
-{
-	node* actual_node=this->root;
-	node::son_type::iterator it;
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
-	{
-		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
-			return false;
-		actual_node=it->second;
-	}
-return actual_node->is_pattern;
-}
-
-bool CompressedTrie::insert(const string& name)
-{
-#if __cplusplus >= 201103L
-	this->once_operation.lock();
-#endif
-	node* actual_node=this->root;
-	node::son_type::iterator it;
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
-	{
-		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
-			it=actual_node->son.insert(make_pair(*i, new node(*i))).first;
-		actual_node=it->second;
-	}
-	if(actual_node->is_pattern)
-	{
-	#if __cplusplus >= 201103L
-		this->once_operation.unlock();
-	#endif
-		return true;
-	}
-	actual_node->is_pattern=true;
-#if __cplusplus >= 201103L
-	this->once_operation.unlock();
-#endif
-	return false;
-}
-
-void CompressedTrie::erase(const string& name)
-{
-#if __cplusplus >= 201103L
-	this->once_operation.lock();
-#endif
-	stack<node*> nodes_stack;
-	node::son_type::iterator it;
-	nodes_stack.push(this->root);
-	for(string::const_iterator i=name.begin(); i!=name.end(); ++i)
-	{
-		if(nodes_stack.top()->son.end()==(it=nodes_stack.top()->son.find(*i)))
-			goto erase_end;
-		nodes_stack.push(it->second);
-	}
-	nodes_stack.top()->is_pattern=false;
-	node* removed_node;
-	while(nodes_stack.size()>1)
-	{
-		removed_node=nodes_stack.top();
-		if(!removed_node->son.empty())
-			goto erase_end;
-		nodes_stack.pop();
-		nodes_stack.top()->son.erase(removed_node->key); // we remove link
-		delete removed_node;
-	}
-erase_end:;
-#if __cplusplus >= 201103L
-	this->once_operation.unlock();
-#endif
-}
-
 using namespace std;
 
 template<typename T>
@@ -279,11 +166,15 @@ inline T abs(T x)
 
 unsigned rd()
 {return abs(rand());}
+
 #include <iostream>
+
+struct lol{};
+
 int main()
 {
 	cout << __cplusplus << endl;
-	/*CompressedTrie ttt;
+	CompressedTrie<lol> ttt;
 	// string k;
 	// k+=char(-47);
 	// k+=char(1);
@@ -291,18 +182,18 @@ int main()
 	// k+=char(11);
 	// ttt.insert(k);
 	ttt.insert("my name is troll");
-	cout << ttt.search("my name is troll") << endl;
-	return 0;*/
+	cout << (ttt.end()!=ttt.search("my name is troll")) << ": " << ttt.get_name(ttt.search("my name is troll")) << endl;
+	// return 0;
 	srand(182431774);
 #ifdef CPRST
-	CompressedTrie my_trie;
+	CompressedTrie<lol> my_trie;
 #elif !defined OLD
-	Trie my_trie;
+	Trie<lol> my_trie;
 #endif
-	for(int i=0; i<800000; ++i)
+	for(int i=0; i<20000; ++i)
 	{
 		string tmp;
-		for(int i=rd()%10; i>=0; --i)
+		for(int j=rd()%400; j>=0; --j)
 			tmp+=static_cast<char>(rd()%256);
 		switch(rd()%3)
 		{
