@@ -15,15 +15,6 @@
 #define LOG(x) std::cerr << #x << ": " << x << endl;
 #define INLINELOG(x) std::cerr << #x << ": " << x << flush;
 
-class DownloadTrieNodeClass
-{
-	friend class DownloadTrie;
-};
-
-class DownloadTrie : public _Trie<DownloadTrieNodeClass>
-{
-};
-
 template<typename type>
 class MutexQueue
 {
@@ -94,21 +85,58 @@ public:
 	}
 };
 
+class IgnoreTrie : public CompressedTrie<std::nothrow_t>
+{
+public:
+	IgnoreTrie(){}
+	~IgnoreTrie(){}
+
+	bool is_ignored(const std::string&) const;
+};
+
+bool IgnoreTrie::is_ignored(const std::string& name) const
+{
+	node* actual_node=this->root;
+	node::son_type::iterator it;
+	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
+	{
+		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
+			return false;
+		actual_node=it->second;
+		if(actual_node->is_pattern) return true;
+	}
+return false;
+}
+
+struct empty {};
+
+class site_class
+{
+public:
+	CompressedTrie<empty>::iterator file;
+	site_class(){}
+	~site_class(){}
+};
+
 using namespace std;
 
 unsigned THREADS=1;
 
 mutex global_lock, loging;
 
-MutexQueue<std::string> download_queue;
+// string - site adress, bool - parse?
+MutexQueue<std::string> download_queue, parse_queue;
 MutexQueue<unsigned> free_threads;
 
 vector<thread> threads;
 
 string server, root_dir, download_command;
-bool bad_server_name=true;
-Trie sites_base, wrong_sites_base;
+
+CompressedTrie<empty> wrong_sites_base;
+CompressedTrie<bool> files_base;
+CompressedTrie<CompressedTrie<bool>::iterator> sites_base;
 IgnoreTrie ignored_sites;
+
 special_aho model_parse;
 /* 0 - "href="
 *  1 - "src="
@@ -132,7 +160,7 @@ public:
 		{
 			struct exception : std::exception
 			{
-				const char* what() const _GLIBCXX_USE_NOEXCEPT {return "Cannot create tmp directory\n";}
+				const char* what() const _GLIBCXX_USE_NOEXCEPT {return "Cannot create temporary directory\n";}
 			};
 			throw exception();
 		}
@@ -167,35 +195,39 @@ download_function_begin:
 	}
 	site=download_queue.extract();
 	if(site.empty()) goto download_exit;
+	sites_base.insert(site);
 	/////////////
 	loging.lock();
 	cout << "\033[01;34mDownloading: " << site << "\033[00m\n" << flush;
 	loging.unlock();
-	string tmp_file_name=string(tmp_dir.name())+"/download"+myto_string(thread_id);
+	string tmp_file_name=string(tmp_dir.name())+"download"+myto_string(thread_id);
+#ifdef DEBUG
+	cerr << download_command+to_shell(site)+" 2> "+tmp_file_name << endl;
+#endif
 	if(0==system(download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
-		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file, new_content;
-		for(int i=5, tfs=tmp_file.size(); i<tfs; ++i)
+		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file;
+		char apostrophe_begin[]={-30, -128, -104, '\0'}, apostrophe_end[]={-30, -128, -103, '\0'};
+		// char apostrophe_begin[]={226, 128, 152}, apostrophe_end[]={226, 128, 153, '\0'};
+		for(int i=3, tfs=tmp_file.size(); i<tfs; ++i)
 		{
-			if(0==tmp_file.compare(i-5, 5, " -> \""))
+			if(0==tmp_file.compare(i-3, 3, apostrophe_begin))
 			{
 				--i;
-				while(++i<tfs && tmp_file[i]!='"')
+				while(++i+3<tfs && tmp_file.compare(i, 3, apostrophe_end)!=0)
 					downloaded_file_name+=tmp_file[i];
 				break;
 			}
 		}
 		if(downloaded_file_name.empty()) goto download_error;
-		if(bad_server_name)
-		{
-			if(0==server.compare(0, 4, downloaded_file_name, 0, 4))
-				bad_server_name=false;
-			else if(0==server.compare(0, 4, "www."))
-				server.erase(0, 4);
-			else server="www."+server;
-		}
+		sites_base.lock();
+		*sites_base.find(site)=files_base.insert(downloaded_file_name).first;
+		sites_base.unlock();
 		loging.lock();
-		cout << "\033[01;34mSite: " << site << "\n\033[01;32mFile: " << downloaded_file_name << "\033[00m\n" << tmp_file << flush;
+		cout << "\033[01;34mSite: " << site << "\n\033[01;32mFile: " << downloaded_file_name << "\033[00m\n" << flush;
+	#ifdef DEBUG
+		cout << tmp_file << flush;
+	#endif
 		loging.unlock();
 		downloaded_file=GetFileContents(downloaded_file_name);
 		special_aho parse=model_parse;
@@ -206,85 +238,78 @@ download_function_begin:
 			{
 				int patt_id=parse[i];
 				i+=parse.pattern(patt_id).first.size();
-				while(i<dfs && (downloaded_file[i]==' ' || downloaded_file[i]=='\t')) ++i;
+				while(i<dfs && (downloaded_file[i]==' ' || downloaded_file[i]=='\t'))
+					++i;
 				char string_char=downloaded_file[i];
 				if(patt_id==2 && string_char!='\'' && string_char!='"')
 				{
 					string_char=')';
 					--i;
-					new_content+=parse.pattern(patt_id).first;
 				}
-				else
-				{
-					new_content+=parse.pattern(patt_id).first+string_char;
-					if(string_char!='\'' && string_char!='"') continue;
-				}
-				/*INLINELOG(i);
+				else if(string_char!='\'' && string_char!='"')
+					continue;
+			#ifdef DEBUG
+				INLINELOG(i);
 				cout << " ; ";
 				INLINELOG(patt_id);
 				cout << " ; ";
 				INLINELOG(string_char);
-				cout << endl;*/
+				cout << endl;
+			#endif
 				string new_site, original_new_site;
 				while(++i<dfs && downloaded_file[i]!=string_char)
 					new_site+=downloaded_file[i];
 				original_new_site=new_site;
-				// LOG(new_site);
+			#ifdef DEBUG
+				LOG(new_site);
+			#endif
+				if(new_site[0]=='?') new_site=downloaded_file_name+new_site;
 				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
 				{
 					eraseHTTPprefix(new_site);
 					if(!(0==new_site.compare(0, server.size(), server) || 0==new_site.compare(0, 4+server.size(), "www."+server)))
-					{
-						new_content+=original_new_site+string_char;
 						continue;
-					}
 				}
-				// LOG(new_site);
+			#ifdef DEBUG
+				LOG(new_site);
+			#endif
 				if(0==new_site.compare(0, server.size(), server))
 					new_site.erase(0, server.size());
 				if(0==new_site.compare(0, 4+server.size(), "www."+server))
 					new_site.erase(0, 4+server.size());
-				// LOG(new_site);
+			#ifdef DEBUG
+				LOG(new_site);
+			#endif
 				if(new_site[0]!='/')
 					new_site=without_end_after_slash(downloaded_file_name)+new_site;
 				else
 					new_site=server+new_site;
 				absolute_path(new_site).swap(new_site);
 				convert_from_HTML(new_site).swap(new_site);
-				/*cout << "\033[01;34m";
+			#ifdef DEBUG
+				cout << "\033[01;34m";
 				LOG(new_site);
-				cout  << "\033[00m";*/
-				if(is_good_name(new_site) && !ignored_sites.is_ignored(new_site) && !sites_base.insert(new_site))
+				cout  << "\033[00m";
+			#endif
+				if(is_good_name(new_site) && !ignored_sites.is_ignored(new_site) && sites_base.insert(new_site).second)
 				{
 					loging.lock();
 					cout << "\033[01;33m" << new_site << "\033[00m\n";
 					loging.unlock();
 					download_queue.push(new_site);
-					new_content+=get_path(downloaded_file_name, (new_site.back()=='/' ? new_site+"index.html":new_site));
 				}
-				else if(!is_good_name(new_site))
-					new_content+=original_new_site;
-				else
-					new_content+=get_path(downloaded_file_name, (new_site.back()=='/' ? new_site+"index.html":new_site));
-				new_content+=string_char;
 			}
-			else
-				new_content+=downloaded_file[i];
 		}
-		fstream file(downloaded_file_name.c_str(), ios::out);
-		if(file.good())
-		{
-			// cerr << new_content << endl;
-			file << new_content;
-			file.close();
-		}
-		else cerr << "Error overwriting file: " << downloaded_file_name << endl;
+		parse_queue.push(downloaded_file_name);
 	}
 	else
 	{
 	download_error:
 		loging.lock();
-		cout << "\033[01;31mError: \033[00m" << site << "\033[00m\n" << GetFileContents(tmp_file_name) << flush;
+		cout << "\033[01;31mError: \033[00m" << site << "\033[00m\n" << flush;
+	#ifdef DEBUG
+		cout << GetFileContents(tmp_file_name) << flush;
+	#endif
 		loging.unlock();
 	}
 	// Searching for free threads of downloading
@@ -307,6 +332,118 @@ download_function_begin:
 		threads[id]=thread(download, id);
 	}
 	goto download_function_begin;
+}
+
+void parse()
+{
+	while(!parse_queue.empty())
+	{
+		string downloaded_file_name, downloaded_file, new_content;
+		downloaded_file_name=parse_queue.extract();
+		if(downloaded_file_name.empty() || *files_base.find(downloaded_file_name)) continue;
+		*files_base.find(downloaded_file_name)=true;
+		cout << "\033[01;36mParsing: " << downloaded_file_name << "\033[00m\n" << flush;
+		downloaded_file=GetFileContents(downloaded_file_name);
+		special_aho parse=model_parse;
+		parse.find(downloaded_file);
+		for(int i=0, dfs=downloaded_file.size(); i<dfs; ++i)
+		{
+			if(parse[i]>=0)
+			{
+				int patt_id=parse[i];
+				i+=parse.pattern(patt_id).first.size();
+				while(i<dfs && (downloaded_file[i]==' ' || downloaded_file[i]=='\t')) ++i;
+				char string_char=downloaded_file[i];
+				if(patt_id==2 && string_char!='\'' && string_char!='"')
+				{
+					string_char=')';
+					--i;
+					new_content+=parse.pattern(patt_id).first;
+				}
+				else
+				{
+					new_content+=parse.pattern(patt_id).first+string_char;
+					if(string_char!='\'' && string_char!='"') continue;
+				}
+				string new_site, original_new_site;
+				while(++i<dfs && downloaded_file[i]!=string_char)
+					new_site+=downloaded_file[i];
+				original_new_site=new_site;
+				if(new_site[0]=='?') new_site=downloaded_file_name+new_site;
+				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
+				{
+					eraseHTTPprefix(new_site);
+					if(!(0==new_site.compare(0, server.size(), server) || 0==new_site.compare(0, 4+server.size(), "www."+server)))
+					{
+						new_content+=original_new_site+string_char;
+						continue;
+					}
+				}
+				if(0==new_site.compare(0, server.size(), server))
+					new_site.erase(0, server.size());
+				if(0==new_site.compare(0, 4+server.size(), "www."+server))
+					new_site.erase(0, 4+server.size());
+				if(new_site[0]!='/')
+					new_site=without_end_after_slash(downloaded_file_name)+new_site;
+				else
+					new_site=server+new_site;
+				absolute_path(new_site).swap(new_site);
+				convert_from_HTML(new_site).swap(new_site);
+				CompressedTrie<CompressedTrie<bool>::iterator>::iterator it=sites_base.find(new_site);
+				if(it!=sites_base.end() && *it!=files_base.end())
+				{
+				#ifdef DEBUG
+					cout << "\033[01;33m" << new_site << "\033[00m\n";
+				#endif
+					string site_address=files_base.get_name(*it);
+					// convert '?' to '%3f'
+					{
+						string tmp_str;
+						for(string::iterator j=site_address.begin(); j!=site_address.end(); ++j)
+						{
+							if(*j=='?')
+								tmp_str+="%3f";
+							else
+								tmp_str+=*j;
+						}
+						site_address.swap(tmp_str);
+					}
+					// add hash
+					bool is_hash=false;
+					for(string::iterator j=new_site.begin(); j!=new_site.end(); ++j)
+					{
+						if(is_hash)
+							site_address+=*j;
+						else if(*j=='#')
+						{
+							is_hash=true;
+							site_address+=*j;
+						}
+					}
+					new_content+=get_path(downloaded_file_name, site_address);
+				}
+				else
+				{
+					eraseHTTPprefix(original_new_site);
+					if(0==original_new_site.compare(0, server.size(), server))
+						original_new_site.erase(0, server.size());
+					if(0==original_new_site.compare(0, 4+server.size(), "www."+server))
+						original_new_site.erase(0, 4+server.size());
+					new_content+="http://"+server+(original_new_site[0]=='/' ? "":"/")+original_new_site;
+				}
+				new_content+=string_char;
+			}
+			else
+				new_content+=downloaded_file[i];
+		}
+		fstream file(downloaded_file_name.c_str(), ios::out);
+		if(file.good())
+		{
+			file << new_content;
+			file.close();
+		}
+		else cerr << "Error overwriting file: " << downloaded_file_name << endl;
+	}
 }
 
 void control_exit(int=0)
@@ -455,7 +592,7 @@ int main(int argc, char **argv)
 	server.erase(eraser);
 	if(0==server.compare(0, 4, "www."))
 	server.erase(0, 4);
-	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -nv -x -nH --directory-prefix="+to_shell(server)+" -nc ";
+	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --directory-prefix="+to_shell(server)+" -nc ";
 	LOG(server);
 	system("pwd > "+string(tmp_dir.name())+"/pwd");
 	root_dir=GetFileContents(string(tmp_dir.name())+"/pwd");
@@ -470,5 +607,7 @@ int main(int argc, char **argv)
 	for(unsigned i=0; i<THREADS; ++i)
 		if(threads[i].joinable())
 			threads[i].join();
+	// Run parsing
+	parse();
 return 0;
 }

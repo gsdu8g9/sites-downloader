@@ -20,12 +20,12 @@ export RM = rm -f
 
 .PHONY: all clean dist-clean
 
-all: sites-downloader sd test ttrie_test
+all: sites-downloader sd test
 
 sites-downloader: main1.cpp
 	$(LINK) $< $(LFLAGS) -o $@
 
-sd: main.o functions.o aho.o trie.o
+sd: main.o functions.o aho.o
 	$(LINK) $^ $(LFLAGS) -o $@
 
 main.o: main.cpp functions.hpp aho.hpp trie.hpp
@@ -37,13 +37,7 @@ functions.o: functions.cpp functions.hpp
 aho.o: aho.cpp aho.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-trie.o: trie.cpp trie.hpp
-	$(CXX) $< $(CXXFLAGS) -o $@
-
-test: test.cpp trie.cpp trie.hpp
-	$(LINK) $< -Wall -W -Wabi -Weffc++ -Wformat -Wshadow -Wsequence-point -Wuninitialized -Wfloat-equal -s -O3 -o $@
-
-ttrie_test: template_trie.cpp trie.cpp trie.hpp
+test: test.cpp trie.hpp
 	$(LINK) $< -Wall -W -Wabi -Weffc++ -Wformat -Wshadow -Wsequence-point -Wuninitialized -Wfloat-equal -s -O3 -o $@
 
 clean:

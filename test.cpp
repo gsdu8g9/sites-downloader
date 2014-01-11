@@ -1,4 +1,4 @@
-#include "trie.cpp"
+#include "trie.hpp"
 #include <cstdlib>
 
 #ifdef OLD
@@ -182,7 +182,7 @@ int main()
 	// k+=char(11);
 	// ttt.insert(k);
 	ttt.insert("my name is troll");
-	cout << (ttt.end()!=ttt.search("my name is troll")) << ": " << ttt.get_name(ttt.search("my name is troll")) << endl;
+	cout << (ttt.end()!=ttt.find("my name is troll")) << ": " << ttt.get_name(ttt.find("my name is troll")) << endl;
 	// return 0;
 	srand(182431774);
 #ifdef CPRST
@@ -208,7 +208,7 @@ int main()
 				#ifdef OLD
 					var_base::find_var(tmp);
 				#else
-					my_trie.search(tmp);
+					my_trie.find(tmp);
 				#endif
 				break;
 			default:
