@@ -169,19 +169,30 @@ unsigned rd()
 
 #include <iostream>
 
-struct lol{};
+struct lol
+{
+	lol(){}
+	lol(const lol&){}
+};
 
 int main()
 {
 	cout << __cplusplus << endl;
-	CompressedTrie<lol> ttt;
+#ifdef CPRST
+	cout << "Test: CompressedTrie" << endl;
+	CompressedTrie<lol> ttt1, ttt;
+#else
+	cout << "Test: Trie" << endl;
+	Trie<lol> ttt1, ttt;
+#endif
 	// string k;
 	// k+=char(-47);
 	// k+=char(1);
 	// k+=char(1);
 	// k+=char(11);
 	// ttt.insert(k);
-	ttt.insert("my name is troll");
+	ttt1.insert("my name is troll");
+	ttt=ttt1;
 	cout << (ttt.end()!=ttt.find("my name is troll")) << ": " << ttt.get_name(ttt.find("my name is troll")) << endl;
 	// return 0;
 	srand(182431774);

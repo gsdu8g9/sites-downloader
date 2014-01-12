@@ -16,7 +16,7 @@ namespace aho
 			int E[256], fail, long_sh_pat, pattern_id; // fail pointer, max shorter patter, pattern id
 			bool is_pattern; // is pattern end in this vertex
 			unsigned char character; // this node character
-			node(unsigned char letter=0): is_pattern(false), character(letter)
+			node(unsigned char letter=0): fail(), long_sh_pat(), pattern_id(), is_pattern(false), character(letter)
 			{
 				for(int i=0; i<256; ++i)
 					E[i]=0;

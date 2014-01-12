@@ -23,7 +23,7 @@ private:
 	std::queue<type> que;
 
 public:
-	MutexQueue(){}
+	MutexQueue(): once_operation(), que(){}
 	~MutexQueue(){}
 
 	const std::queue<type>& queue() const
@@ -114,7 +114,7 @@ class site_class
 {
 public:
 	CompressedTrie<empty>::iterator file;
-	site_class(){}
+	site_class(): file(){}
 	~site_class(){}
 };
 
@@ -150,6 +150,8 @@ inline int system(const string& str)
 class temporary_directory
 {
 	char* _M_name;
+	temporary_directory(const temporary_directory&): _M_name(){}
+	temporary_directory& operator=(const temporary_directory&){return *this;}
 public:
 	explicit temporary_directory(const char* new_name): _M_name(new char[strlen(new_name)+2])
 	{
