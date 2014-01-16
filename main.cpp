@@ -12,6 +12,10 @@
 #include <csignal>
 #include <fstream>
 
+#ifdef DEBUG
+#define LOGS
+#endif
+
 #define LOG(x) std::cerr << #x << ": " << x << endl;
 #define INLINELOG(x) std::cerr << #x << ": " << x << flush;
 
@@ -293,7 +297,7 @@ download_function_begin:
 				LOG(new_site);
 				cout  << "\033[00m";
 			#endif
-				if(is_good_name(new_site) && !ignored_sites.is_ignored(new_site) && sites_base.insert(new_site).second)
+				if(0!=original_new_site.compare(0, 11, "javascript:") && is_good_name(new_site) && !ignored_sites.is_ignored(new_site) && sites_base.insert(new_site).second)
 				{
 					loging.lock();
 					cout << "\033[01;33m" << new_site << "\033[00m\n";
@@ -309,7 +313,7 @@ download_function_begin:
 	download_error:
 		loging.lock();
 		cout << "\033[01;31mError: \033[00m" << site << "\033[00m\n" << flush;
-	#ifdef DEBUG
+	#ifdef LOGS
 		cout << GetFileContents(tmp_file_name) << flush;
 	#endif
 		loging.unlock();
@@ -424,6 +428,8 @@ void parse()
 					}
 					new_content+=get_path(downloaded_file_name, site_address);
 				}
+				else if(0==original_new_site.compare(0, 11, "javascript:")) // we are sure it isn't in sites_base
+					new_content+=original_new_site;
 				else
 				{
 					eraseHTTPprefix(original_new_site);
@@ -455,6 +461,7 @@ void control_exit(int=0)
 	for(unsigned i=0; i<THREADS; ++i)
 		if(threads[i].joinable())
 			threads[i].detach();
+	parse();
 	remove_r(tmp_dir);
 	exit(1);
 }
