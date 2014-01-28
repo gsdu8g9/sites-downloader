@@ -27,12 +27,12 @@ class aho
 
 		class_trie(): graph(1) // add root
 		{
-			this->graph.front().fail=this->graph.front().long_sh_pat=0; // max shorter pattern isn't exist
+			graph.front().fail=graph.front().long_sh_pat=0; // max shorter pattern isn't exist
 		}
 
 		void swap(class_trie& _t)
 		{
-			this->graph.swap(_t.graph);
+			graph.swap(_t.graph);
 		}
 
 		int add_word(const std::string& word, int id);
@@ -45,18 +45,18 @@ public:
 	aho(): trie(), fin(){}
 	~aho(){}
 	std::vector<std::vector<unsigned>* >::size_type size()
-	{return this->fin.size();}
+	{return fin.size();}
 
 	std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>* >::size_type n)
-	{return *this->fin[n];}
+	{return *fin[n];}
 
 	const std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>* >::size_type n) const
-	{return *this->fin[n];}
+	{return *fin[n];}
 
 	void swap(aho& _a)
 	{
-		this->trie.swap(_a.trie);
-		this->fin.swap(_a.fin);
+		trie.swap(_a.trie);
+		fin.swap(_a.fin);
 	}
 
 	void find(const std::vector<std::string>& patterns, const std::string& text);
@@ -68,18 +68,18 @@ class const_string
 public:
 	explicit const_string(const char* _str): _M_str(new char[strlen(_str)+1])
 	{
-		memcpy(this->_M_str, _str, strlen(_str)+1);
+		memcpy(_M_str, _str, strlen(_str)+1);
 	}
 	const_string(const const_string& _cstr): _M_str(_cstr._M_str) {}
 	const_string& operator=(const const_string& _cstr)
 	{
-		this->_M_str=_cstr._M_str;
+		_M_str=_cstr._M_str;
 	return *this;
 	}
 	~const_string(){}
 
 	const char* str() const
-	{return this->_M_str;}
+	{return _M_str;}
 
 	bool operator==(const const_string& _cstr)
 	{return this==&_cstr;}
@@ -92,7 +92,7 @@ public:
 	{return os << _cstr._M_str;}
 
 	operator const char*() const
-	{return this->_M_str;}
+	{return _M_str;}
 };
 
 class special_aho
@@ -118,12 +118,12 @@ class special_aho
 
 		class_trie(): graph(1) // add root
 		{
-			this->graph.front().fail=this->graph.front().long_sh_pat=0; // max shorter pattern isn't exist
+			graph.front().fail=graph.front().long_sh_pat=0; // max shorter pattern isn't exist
 		}
 
 		void swap(class_trie& _t)
 		{
-			this->graph.swap(_t.graph);
+			graph.swap(_t.graph);
 		}
 
 		int add_word(const std::string& word, int id);
@@ -138,22 +138,22 @@ public:
 	~special_aho(){}
 
 	std::vector<int>::size_type size()
-	{return this->fin.size();}
+	{return fin.size();}
 
 	int& operator[](std::vector<int>::size_type n)
-	{return this->fin[n];}
+	{return fin[n];}
 
 	const int& operator[](std::vector<int>::size_type n) const
-	{return this->fin[n];}
+	{return fin[n];}
 
 	void swap(special_aho& _a)
 	{
-		this->trie.swap(_a.trie);
-		this->fin.swap(_a.fin);
+		trie.swap(_a.trie);
+		fin.swap(_a.fin);
 	}
 
 	const std::pair<std::string, const_string>& pattern(std::vector<std::pair<std::string, const_string> >::size_type n) const
-	{return this->patterns[n];}
+	{return patterns[n];}
 
 	void set_patterns(const std::vector<std::pair<std::string, const_string> >& new_patterns);
 

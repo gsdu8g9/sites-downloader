@@ -31,60 +31,60 @@ public:
 	~MutexQueue(){}
 
 	const std::queue<type>& queue() const
-	{return this->que;}
+	{return que;}
 
 	std::queue<type>& unsafe_queue()
-	{return this->que;}
+	{return que;}
 
 	typename std::queue<type>::value_type& front()
-	{return this->que.front();}
+	{return que.front();}
 
 	const typename std::queue<type>::value_type& front() const
-	{return this->que.front();}
+	{return que.front();}
 
 	typename std::queue<type>::value_type& back()
-	{return this->que.back();}
+	{return que.back();}
 
 	const typename std::queue<type>::value_type& back() const
-	{return this->que.back();}
+	{return que.back();}
 
 	bool empty() const
-	{return this->que.empty();}
+	{return que.empty();}
 
 	void lock()
-	{this->once_operation.lock();}
+	{once_operation.lock();}
 
 	void unlock()
-	{this->once_operation.unlock();}
+	{once_operation.unlock();}
 
 	typename std::queue<type>::size_type size() const
-	{return this->que.size();}
+	{return que.size();}
 
 	void push(const type& str)
 	{
-		this->once_operation.lock();
-		this->que.push(str);
-		this->once_operation.unlock();
+		once_operation.lock();
+		que.push(str);
+		once_operation.unlock();
 	}
 
 	void pop()
 	{
-		this->once_operation.lock();
-		this->que.pop();
-		this->once_operation.unlock();
+		once_operation.lock();
+		que.pop();
+		once_operation.unlock();
 	}
 
 	type extract()
 	{
-		this->once_operation.lock();
-		if(this->que.empty())
+		once_operation.lock();
+		if(que.empty())
 		{
-			this->once_operation.unlock();
+			once_operation.unlock();
 			return type();
 		}
-		type out=this->que.front();
-		this->que.pop();
-		this->once_operation.unlock();
+		type out=que.front();
+		que.pop();
+		once_operation.unlock();
 		return out;
 	}
 };
@@ -100,7 +100,7 @@ public:
 
 bool IgnoreTrie::is_ignored(const std::string& name) const
 {
-	node* actual_node=this->root;
+	node* actual_node=root;
 	node::son_type::iterator it;
 	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
@@ -160,9 +160,9 @@ public:
 	explicit temporary_directory(const char* new_name): _M_name(new char[strlen(new_name)+2])
 	{
 		unsigned size=strlen(new_name);
-		memcpy(this->_M_name, new_name, size);
-		this->_M_name[size]=this->_M_name[size+1]='\0';
-		if(NULL==mkdtemp(this->_M_name))
+		memcpy(_M_name, new_name, size);
+		_M_name[size]=_M_name[size+1]='\0';
+		if(NULL==mkdtemp(_M_name))
 		{
 			struct exception : std::exception
 			{
@@ -170,21 +170,21 @@ public:
 			};
 			throw exception();
 		}
-		this->_M_name[size]='/';
-		chmod(this->_M_name, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+		_M_name[size]='/';
+		chmod(_M_name, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 	}
 
 	~temporary_directory()
 	{
-		remove_r(this->_M_name);
-		delete[] this->_M_name;
+		remove_r(_M_name);
+		delete[] _M_name;
 	}
 
 	const char* name() const
-	{return this->_M_name;}
+	{return _M_name;}
 
 	operator const char*() const
-	{return this->_M_name;}
+	{return _M_name;}
 } tmp_dir("sites-downloader.XXXXXX");
 
 void download(int thread_id)
