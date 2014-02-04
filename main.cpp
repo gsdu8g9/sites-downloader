@@ -128,8 +128,9 @@ unsigned THREADS=1;
 
 mutex global_lock, loging;
 
-// string - site adress, bool - parse?
-MutexQueue<std::string> download_queue, parse_queue;
+MutexQueue<std::string> download_queue;
+// first - file name, second - site adress
+MutexQueue<std::pair<std::string, std::string> > parse_queue;
 MutexQueue<unsigned> free_threads;
 
 vector<thread> threads;
@@ -213,14 +214,14 @@ download_function_begin:
 	if(0==system(download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
 		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file;
-		char apostrophe_begin[]={-30, -128, -104, '\0'}, apostrophe_end[]={-30, -128, -103, '\0'};
+		char apostrophe_begin[]={'`', '\0'}, apostrophe_end[]={'\'', '\0'};
 		// char apostrophe_begin[]={226, 128, 152}, apostrophe_end[]={226, 128, 153, '\0'};
 		for(int i=3, tfs=tmp_file.size(); i<tfs; ++i)
 		{
-			if(0==tmp_file.compare(i-3, 3, apostrophe_begin))
+			if(0==tmp_file.compare(i-1, 1, apostrophe_begin))
 			{
 				--i;
-				while(++i+3<tfs && tmp_file.compare(i, 3, apostrophe_end)!=0)
+				while(++i+1<tfs && tmp_file.compare(i, 1, apostrophe_end)!=0)
 					downloaded_file_name+=tmp_file[i];
 				break;
 			}
@@ -269,7 +270,7 @@ download_function_begin:
 			#ifdef DEBUG
 				LOG(new_site);
 			#endif
-				if(new_site[0]=='?') new_site=downloaded_file_name+new_site;
+				if(new_site[0]=='?') new_site=site+new_site;
 				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
 				{
 					eraseHTTPprefix(new_site);
@@ -306,7 +307,7 @@ download_function_begin:
 				}
 			}
 		}
-		parse_queue.push(downloaded_file_name);
+		parse_queue.push(make_pair(site, downloaded_file_name));
 	}
 	else
 	{
@@ -344,8 +345,12 @@ void parse()
 {
 	while(!parse_queue.empty())
 	{
-		string downloaded_file_name, downloaded_file, new_content;
-		downloaded_file_name=parse_queue.extract();
+		string site, downloaded_file_name, downloaded_file, new_content;
+		parse_queue.lock();
+		site=parse_queue.front().first;
+		downloaded_file_name=parse_queue.front().second;
+		parse_queue.unsafe_queue().pop();
+		parse_queue.unlock();
 		if(downloaded_file_name.empty() || *files_base.find(downloaded_file_name)) continue;
 		*files_base.find(downloaded_file_name)=true;
 		cout << "\033[01;36mParsing: " << downloaded_file_name << "\033[00m\n" << flush;
@@ -375,7 +380,7 @@ void parse()
 				while(++i<dfs && downloaded_file[i]!=string_char)
 					new_site+=downloaded_file[i];
 				original_new_site=new_site;
-				if(new_site[0]=='?') new_site=downloaded_file_name+new_site;
+				if(new_site[0]=='?') new_site=site+new_site;
 				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
 				{
 					eraseHTTPprefix(new_site);
@@ -394,8 +399,8 @@ void parse()
 				else
 					new_site=server+new_site;
 				absolute_path(new_site).swap(new_site);
-				convert_from_HTML(new_site).swap(new_site);
 				CompressedTrie<CompressedTrie<bool>::iterator>::iterator it=sites_base.find(new_site);
+				convert_from_HTML(new_site).swap(new_site);
 				if(it!=sites_base.end() && *it!=files_base.end())
 				{
 				#ifdef DEBUG
@@ -601,7 +606,7 @@ int main(int argc, char **argv)
 	server.erase(eraser);
 	if(0==server.compare(0, 4, "www."))
 	server.erase(0, 4);
-	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --directory-prefix="+to_shell(server)+" -nc ";
+	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --adjust-extension --directory-prefix="+to_shell(server)+" -nc ";
 	LOG(server);
 	system("pwd > "+string(tmp_dir.name())+"/pwd");
 	root_dir=GetFileContents(string(tmp_dir.name())+"/pwd");
