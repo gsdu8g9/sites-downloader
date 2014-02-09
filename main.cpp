@@ -381,6 +381,8 @@ void parse()
 					new_site+=downloaded_file[i];
 				original_new_site=new_site;
 				if(new_site[0]=='?') new_site=site+new_site;
+				D(cerr << endl);
+				LOGN(new_site);
 				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
 				{
 					eraseHTTPprefix(new_site);
@@ -390,6 +392,7 @@ void parse()
 						continue;
 					}
 				}
+				LOGN(new_site);
 				if(0==new_site.compare(0, server.size(), server))
 					new_site.erase(0, server.size());
 				if(0==new_site.compare(0, 4+server.size(), "www."+server))
@@ -398,9 +401,11 @@ void parse()
 					new_site=without_end_after_slash(downloaded_file_name)+new_site;
 				else
 					new_site=server+new_site;
+				LOGN(new_site);
 				absolute_path(new_site).swap(new_site);
-				CompressedTrie<CompressedTrie<bool>::iterator>::iterator it=sites_base.find(new_site);
 				convert_from_HTML(new_site).swap(new_site);
+				LOGN(new_site);
+				CompressedTrie<CompressedTrie<bool>::iterator>::iterator it=sites_base.find(new_site);
 				if(it!=sites_base.end() && *it!=files_base.end())
 				{
 				#ifdef DEBUG
