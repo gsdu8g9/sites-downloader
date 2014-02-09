@@ -159,18 +159,16 @@ return out;
 
 string GetFileContents(const string& file_name)
 {
-	string out, tmp;
-	fstream file(file_name.c_str(), ios_base::in);
-	if(file.good())
-	{
-		getline(file, out);
-		while(file.good())
-		{
-			getline(file, tmp);
-			out+='\n';
-			out+=tmp;
-		}
-	}
+	FILE* file = fopen(file_name.c_str(), "r");
+	// Determine file size
+	fseek(file, 0, SEEK_END);
+	size_t size = ftell(file);
+	char* content = new char[size];
+	rewind(file);
+	fread(content, sizeof(char), size, file);
+	fclose(file);
+	string out(content, content+size);
+	delete[] content;
 return out;
 }
 

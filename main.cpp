@@ -14,10 +14,15 @@
 
 #ifdef DEBUG
 #define LOGS
+#define D(x) x
+#define LOGN(x) std::cerr << #x << ": " << x << endl;
+#define LOG(x) std::cerr << #x << ": " << x << flush;
+#else
+#define D(x)
+#define LOGN(x)
+#define LOG(x)
 #endif
 
-#define LOG(x) std::cerr << #x << ": " << x << endl;
-#define INLINELOG(x) std::cerr << #x << ": " << x << flush;
 
 template<typename type>
 class MutexQueue
@@ -125,6 +130,7 @@ public:
 using namespace std;
 
 unsigned THREADS=1;
+bool show_links_origin=false;
 
 mutex global_lock, loging;
 
@@ -234,9 +240,7 @@ download_function_begin:
 		sites_base.unlock();
 		loging.lock();
 		cout << "\033[01;34mSite: " << site << "\n\033[01;32mFile: " << downloaded_file_name << "\033[00m\n" << flush;
-	#ifdef DEBUG
-		cout << tmp_file << flush;
-	#endif
+		LOG(tmp_file);
 		loging.unlock();
 		downloaded_file=GetFileContents(downloaded_file_name);
 		special_aho parse=model_parse;
@@ -257,21 +261,18 @@ download_function_begin:
 				}
 				else if(string_char!='\'' && string_char!='"')
 					continue;
-			#ifdef DEBUG
-				INLINELOG(i);
-				cout << " ; ";
-				INLINELOG(patt_id);
-				cout << " ; ";
-				INLINELOG(string_char);
-				cout << endl;
-			#endif
+				LOG(i);
+				D(cerr << " ; ");
+				LOG(patt_id);
+				D(cerr << " ; ");
+				LOG(string_char);
+				D(cerr << " ");
+				LOGN(dfs);
 				string new_site, original_new_site;
 				while(++i<dfs && downloaded_file[i]!=string_char)
 					new_site+=downloaded_file[i];
 				original_new_site=new_site;
-			#ifdef DEBUG
-				LOG(new_site);
-			#endif
+				LOGN(new_site);
 				if(new_site[0]=='?') new_site=site+new_site;
 				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
 				{
@@ -279,31 +280,28 @@ download_function_begin:
 					if(!(0==new_site.compare(0, server.size(), server) || 0==new_site.compare(0, 4+server.size(), "www."+server)))
 						continue;
 				}
-			#ifdef DEBUG
-				LOG(new_site);
-			#endif
+				LOGN(new_site);
 				if(0==new_site.compare(0, server.size(), server))
 					new_site.erase(0, server.size());
 				if(0==new_site.compare(0, 4+server.size(), "www."+server))
 					new_site.erase(0, 4+server.size());
-			#ifdef DEBUG
-				LOG(new_site);
-			#endif
+				LOGN(new_site);
 				if(new_site[0]!='/')
 					new_site=without_end_after_slash(downloaded_file_name)+new_site;
 				else
 					new_site=server+new_site;
 				absolute_path(new_site).swap(new_site);
 				convert_from_HTML(new_site).swap(new_site);
-			#ifdef DEBUG
-				cout << "\033[01;34m";
-				LOG(new_site);
-				cout  << "\033[00m";
-			#endif
+				D(cerr << "\033[01;34m");
+				LOGN(new_site);
+				D(cerr << "\033[00m");
 				if(0!=original_new_site.compare(0, 11, "javascript:") && is_good_name(new_site) && !ignored_sites.is_ignored(new_site) && sites_base.insert(new_site).second)
 				{
 					loging.lock();
-					cout << "\033[01;33m" << new_site << "\033[00m\n";
+					cout << "\033[01;33m" << new_site << "\033[00m";
+					if(show_links_origin)
+						cout << " <- " << downloaded_file_name;
+					cout << endl;
 					loging.unlock();
 					download_queue.push(new_site);
 				}
@@ -496,13 +494,17 @@ int main(int argc, char **argv)
 	signal(_NSIG, control_exit);
 	if(argc<2)
 	{
-		cout << "Usage: sites-downloader <sites...> [options]\nSites have to belong to one server\nOptions:\n    -i PAGE_URL         Set ignore urls with prefix PAGE_URL\n    -w WRONGS_FILE      Repair/continue download page, WRONGS_FILE is file to which the program prints the error logs, you can use only one this option\n    -j [N], --jobs[=N]  Allow N jobs at once" << endl;
+		cout << "Usage: sd [options]... site... \nSites have to belong to one server\nOptions:\n    --enable-links-origin   Enables showing links origin (file)\n    --disable-links-origin  Disables showing links origin (file)\n    -i PAGE_URL             Set ignore urls with prefix PAGE_URL\n    -w WRONGS_FILE          Repair/continue download page, WRONGS_FILE is file to which the program prints the error logs, you can use only one this option\n    -j [N], --jobs[=N]      Allow N jobs at once" << endl;
 		exit(1);
 	}
 	for(int i=1; i<argc; ++i)
 	{
 		static bool have_wrongs_file=false;
-		if(0==memcmp(argv[i], "-i", 2))
+		if(0==memcmp(argv[i], "--enable-links-origin", 21))
+			show_links_origin=true;
+		else if(0==memcmp(argv[i], "--disable-links-origin", 22))
+			show_links_origin=false;
+		else if(0==memcmp(argv[i], "-i", 2))
 		{
 			string site(argv[i]+2);
 			if(site.empty())
@@ -609,11 +611,11 @@ int main(int argc, char **argv)
 	if(0==server.compare(0, 4, "www."))
 	server.erase(0, 4);
 	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --adjust-extension --directory-prefix="+to_shell(server)+" -nc ";
-	LOG(server);
+	LOGN(server);
 	system("pwd > "+string(tmp_dir.name())+"/pwd");
 	root_dir=GetFileContents(string(tmp_dir.name())+"/pwd");
 	root_dir.back()='/';
-	LOG(root_dir);
+	LOGN(root_dir);
 	// Initialize model_parse
 	vector<pair<string, const_string> > parse_patterns{make_pair("href=", link), make_pair("src=", link), make_pair("url(", link), make_pair("HREF=", link), make_pair("SRC=", link)};
 	model_parse.set_patterns(parse_patterns);
