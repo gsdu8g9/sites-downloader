@@ -144,7 +144,9 @@ IgnoreTrie ignored_sites;
 
 special_aho model_parse;
 /* 0 - "href="
+*  1 - "HREF="
 *  1 - "src="
+*  1 - "SRC="
 *  2 - "url("
 */
 const_string link("");
@@ -613,7 +615,7 @@ int main(int argc, char **argv)
 	root_dir.back()='/';
 	LOG(root_dir);
 	// Initialize model_parse
-	vector<pair<string, const_string> > parse_patterns{make_pair("href=", link), make_pair("src=", link), make_pair("url(", link)};
+	vector<pair<string, const_string> > parse_patterns{make_pair("href=", link), make_pair("HREF=", link), make_pair("src=", link), make_pair("SRC=", link), make_pair("url(", link)};
 	model_parse.set_patterns(parse_patterns);
 	// Run downloading
 	threads[0]=thread(download, 0);

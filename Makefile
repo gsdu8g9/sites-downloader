@@ -22,6 +22,9 @@ export RM = rm -f
 
 all: sites-downloader sd test
 
+debug:
+	make -C . CXX=$(CXX)\ -DDEBUG CC=$(CC)\ -DDEBUG
+
 sites-downloader: main1.cpp
 	$(LINK) $< $(LFLAGS) -o $@
 
