@@ -476,7 +476,7 @@ void control_exit(int=0)
 	exit(1);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char const **argv)
 {
 	// signal control
 	signal(SIGHUP, control_exit);

@@ -1,7 +1,5 @@
 
-all: sd
-
-sd:
+all:
 	make -C src $(MFLAGS)
 
 debug:
