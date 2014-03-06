@@ -136,7 +136,7 @@ protected:
 		node(node* new_parent, const node& _nd): is_pattern(_nd.is_pattern), key(_nd.key), parent(new_parent), son(_nd.son), value(new T(*_nd.value))
 		{
 			for(typename son_type::iterator i=son.begin(); i!=son.end(); ++i)
-				i->second=new node(this, *_nd.son.find(i->first)->second);
+				i->second=new node(this, *i->second);
 		}
 
 		~node()
