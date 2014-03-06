@@ -123,7 +123,7 @@ protected:
 		node(const node& _nd): is_pattern(_nd.is_pattern), key(_nd.key), parent(_nd.parent), son(_nd.son), value(_nd.value){}
 		node& operator=(const node&){return *this;}
 	public:
-		typedef std::map<unsigned char, node*> son_type;
+		typedef std::multimap<unsigned char, node*> son_type;
 
 		bool is_pattern;
 		unsigned char key;
@@ -333,7 +333,7 @@ std::pair<typename CompressedTrie<T>::iterator, bool> CompressedTrie<T>::insert(
 	for(std::string::const_iterator i=name.begin(); i!=name.end(); ++i)
 	{
 		if(actual_node->son.end()==(it=actual_node->son.find(*i)))
-			it=actual_node->son.insert(std::make_pair(*i, new node(actual_node, *i))).first;
+			it=actual_node->son.insert(std::make_pair(*i, new node(actual_node, *i)));
 		actual_node=it->second;
 	}
 	if(actual_node->is_pattern)
