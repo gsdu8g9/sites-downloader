@@ -23,6 +23,38 @@
 #define LOG(x)
 #endif
 
+class const_string
+{
+	char* _M_str;
+public:
+	explicit const_string(const char* _str): _M_str(new char[strlen(_str)+1])
+	{
+		memcpy(_M_str, _str, strlen(_str)+1);
+	}
+	const_string(const const_string& _cstr): _M_str(_cstr._M_str) {}
+	const_string& operator=(const const_string& _cstr)
+	{
+		_M_str=_cstr._M_str;
+	return *this;
+	}
+	~const_string(){}
+
+	const char* str() const
+	{return _M_str;}
+
+	bool operator==(const const_string& _cstr)
+	{return this==&_cstr;}
+
+	bool operator!=(const const_string& _cstr)
+	{return this!=&_cstr;}
+
+	template<class ostream_type>
+	friend ostream_type& operator<<(ostream_type& os, const const_string& _cstr)
+	{return os << _cstr._M_str;}
+
+	operator const char*() const
+	{return _M_str;}
+};
 
 template<typename type>
 class MutexQueue
@@ -148,7 +180,7 @@ CompressedTrie<bool> files_base;
 CompressedTrie<CompressedTrie<bool>::iterator> sites_base;
 IgnoreTrie ignored_sites;
 
-special_aho model_parse;
+special_aho<const_string> model_parse;
 /* 0 - "href="
 *  1 - "src="
 *  2 - "url("
@@ -243,7 +275,7 @@ download_function_begin:
 		LOG(tmp_file);
 		loging.unlock();
 		downloaded_file=GetFileContents(downloaded_file_name);
-		special_aho parse=model_parse;
+		special_aho<const_string> parse=model_parse;
 		parse.find(downloaded_file);
 		for(int i=0, dfs=downloaded_file.size(); i<dfs; ++i)
 		{
@@ -355,7 +387,7 @@ void parse()
 		*files_base.find(downloaded_file_name)=true;
 		cout << "\033[01;36mParsing: " << downloaded_file_name << "\033[00m\n" << flush;
 		downloaded_file=GetFileContents(downloaded_file_name);
-		special_aho parse=model_parse;
+		special_aho<const_string> parse=model_parse;
 		parse.find(downloaded_file);
 		for(int i=0, dfs=downloaded_file.size(); i<dfs; ++i)
 		{

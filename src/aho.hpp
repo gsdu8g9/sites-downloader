@@ -1,143 +1,195 @@
-#include <string>
-#include <vector>
-#include <cstring>
-
 #pragma once
 
-// aho.cpp
-class aho
+#include <map>
+#include <string>
+#include <vector>
+
+class aho_base
 {
-	class class_trie
+protected:
+	// node of Trie tree
+	struct node
 	{
-	public:
-		struct node
-		{
-			int E[256], fail, long_sh_pat, pattern_id; // fail pointer, max shorter pattern, pattern id
-			bool is_pattern; // is pattern end in this vertex
-			unsigned char character; // this node character
-			node(unsigned char letter=0): fail(), long_sh_pat(), pattern_id(), is_pattern(false), character(letter)
-			{
-				for(int i=0; i<256; ++i)
-					E[i]=0;
-			}
-			~node(){}
-		};
+		typedef node* _ptr;
 
-		std::vector<node> graph;
+		bool is_pattern;
+		unsigned char key;
+		unsigned pattern_id; // pattern id
+		_ptr fail, long_sh_pat; // fail pointer, the longest shorter pattern
+		_ptr son[256];
 
-		class_trie(): graph(1) // add root
+		node(unsigned char _k = 0, bool _ip = false, _ptr _f = NULL, _ptr _l = NULL): is_pattern(_ip), key(_k), pattern_id(), fail(_f), long_sh_pat(_l)
 		{
-			graph.front().fail=graph.front().long_sh_pat=0; // max shorter pattern isn't exist
+			for(int i = 0; i < 256; ++i)
+				son[i] = NULL;
 		}
 
-		void swap(class_trie& _t)
+		node(const node& nd): is_pattern(nd.is_pattern), key(nd.key), pattern_id(nd.pattern_id), fail(nd.fail), long_sh_pat(nd.long_sh_pat)
 		{
-			graph.swap(_t.graph);
+			for(int i = 0; i < 256; ++i)
+				son[i] = nd.son[i];
 		}
 
-		int add_word(const std::string& word, int id);
-		void add_fails(); // and the longest shorter patterns, based on BFS algorithm
-	} trie;
+		node& operator=(const node& nd)
+		{
+			is_pattern = nd.is_pattern;
+			key = nd.key;
+			pattern_id = nd.pattern_id;
+			fail = nd.fail;
+			long_sh_pat = nd.long_sh_pat;
+			for(int i = 0; i < 256; ++i)
+				son[i] = nd.son[i];
+			return *this;
+		}
 
-	std::vector<std::vector<unsigned>* > fin; // finding patterns
+		~node()
+		{
+			for(int i = 0; i != 256; ++i)
+				if(son[i] != NULL)
+					delete son[i];
+		}
+
+		void copy(_ptr nd)
+		{
+			is_pattern = nd->is_pattern;
+			key = nd->key;
+			pattern_id = nd->pattern_id;
+			for(int i = 0; i != 256; ++i)
+				if(nd->son[i])
+					son[i] = new node(*nd->son[i]), son[i]->copy(nd->son[i]);
+				else
+					son[i] = NULL;
+		}
+	};
+
+	node::_ptr root;
+
+	void add_fails();
+
+	// returns real id of inserted word
+	unsigned insert(const std::string& word, unsigned id);
+
+	aho_base(): root(new node)
+	{
+		root->fail = root->long_sh_pat = root;
+	}
+
+	aho_base(const aho_base& ab): root(new node)
+	{
+		root->copy(ab.root);
+		root->fail = root->long_sh_pat = root;
+		add_fails();
+	}
+
+	aho_base& operator=(const aho_base& ab)
+	{
+		root->copy(ab.root);
+		root->fail = root->long_sh_pat = root;
+		add_fails();
+		return *this;
+	}
+
+	virtual ~aho_base()
+	{
+		delete root;
+	}
+};
+
+class aho : public aho_base
+{
+protected:
+	std::vector<std::vector<unsigned>*> fin; // finded patterns
+	std::vector<unsigned> fin_id; // tells real (in Trie) id of pattern
 
 public:
-	aho(): trie(), fin(){}
-	~aho(){}
-	std::vector<std::vector<unsigned>* >::size_type size()
-	{return fin.size();}
+	aho(): aho_base(), fin(), fin_id()
+	{}
 
-	std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>* >::size_type n)
-	{return *fin[n];}
+	aho(const aho& _a): aho_base(_a), fin(_a.fin), fin_id(_a.fin_id)
+	{
+		for(unsigned i = 0, s = fin.size(); i < s; ++i)
+		{
+			if(fin_id[i] == i)
+				fin[i] = new std::vector<unsigned>(*fin[i]);
+			else
+				fin[i] = fin[fin_id[i]];
+		}
+	}
 
-	const std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>* >::size_type n) const
-	{return *fin[n];}
+	aho& operator=(aho& _a)
+	{
+		aho_base::operator=(_a);
+		fin = _a.fin;
+		fin_id = _a.fin_id;
+		for(unsigned i = 0, s = fin.size(); i < s; ++i)
+		{
+			if(fin_id[i] == i)
+				fin[i] = new std::vector<unsigned>(*fin[i]);
+			else
+				fin[i] = fin[fin_id[i]];
+		}
+		return *this;
+	}
+
+	virtual ~aho()
+	{
+		for(unsigned i = 0, s = fin.size(); i < s; ++i)
+			if(fin_id[i] == i)
+				delete fin[i];
+	}
 
 	void swap(aho& _a)
 	{
-		trie.swap(_a.trie);
-		fin.swap(_a.fin);
+		std::swap(root, _a.root);
+		std::swap(fin, _a.fin);
+		std::swap(fin_id, _a.fin_id);
 	}
+
+	std::vector<std::vector<unsigned>*>::size_type size() const
+	{return fin.size();}
+
+	std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>*>::size_type n)
+	{return *fin[n];}
+
+	const std::vector<unsigned>& operator[](std::vector<std::vector<unsigned>*>::size_type n) const
+	{return *fin[n];}
 
 	void find(const std::vector<std::string>& patterns, const std::string& text);
 };
 
-class const_string
+template<class T>
+class special_aho : public aho_base
 {
-	char* _M_str;
-public:
-	explicit const_string(const char* _str): _M_str(new char[strlen(_str)+1])
-	{
-		memcpy(_M_str, _str, strlen(_str)+1);
-	}
-	const_string(const const_string& _cstr): _M_str(_cstr._M_str) {}
-	const_string& operator=(const const_string& _cstr)
-	{
-		_M_str=_cstr._M_str;
-	return *this;
-	}
-	~const_string(){}
-
-	const char* str() const
-	{return _M_str;}
-
-	bool operator==(const const_string& _cstr)
-	{return this==&_cstr;}
-
-	bool operator!=(const const_string& _cstr)
-	{return this!=&_cstr;}
-
-	template<class ostream_type>
-	friend ostream_type& operator<<(ostream_type& os, const const_string& _cstr)
-	{return os << _cstr._M_str;}
-
-	operator const char*() const
-	{return _M_str;}
-};
-
-class special_aho
-{
-	class class_trie
-	{
-	public:
-		struct node
-		{
-			int E[256], fail, long_sh_pat, pattern_id; // fail pointer, max shorter pattern, pattern id
-			bool is_pattern; // is pattern end in this vertex
-			// unsigned char color; // highlight color
-			unsigned char character; // this node character
-			node(unsigned char letter=0): fail(), long_sh_pat(), pattern_id(), is_pattern(false), character(letter)
-			{
-				for(int i=0; i<256; ++i)
-					E[i]=0;
-			}
-			~node(){}
-		};
-
-		std::vector<node> graph;
-
-		class_trie(): graph(1) // add root
-		{
-			graph.front().fail=graph.front().long_sh_pat=0; // max shorter pattern isn't exist
-		}
-
-		void swap(class_trie& _t)
-		{
-			graph.swap(_t.graph);
-		}
-
-		int add_word(const std::string& word, int id);
-		void add_fails(); // and the longest shorter patterns, based on BFS algorithm
-	} trie;
-
-	std::vector<std::pair<std::string, const_string> > patterns;
-	std::vector<int> fin; // finding patterns
+protected:
+	std::vector<int> fin; // finded patterns occurrences
+	std::vector<std::pair<std::string, T> > patterns;
 
 public:
-	special_aho(): trie(), patterns(), fin(){}
-	~special_aho(){}
+	special_aho(): aho_base(), fin(), patterns()
+	{}
 
-	std::vector<int>::size_type size()
+	special_aho(const special_aho& _a): aho_base(_a), fin(_a.fin), patterns(_a.patterns)
+	{}
+
+	special_aho& operator=(special_aho& _a)
+	{
+		aho_base::operator=(_a);
+		fin = _a.fin;
+		patterns = _a.patterns;
+		return *this;
+	}
+
+	virtual ~special_aho()
+	{}
+
+	void swap(special_aho& _a)
+	{
+		std::swap(root, _a.root);
+		std::swap(fin, _a.fin);
+		std::swap(patterns, _a.patterns);
+	}
+
+	std::vector<int>::size_type size() const
 	{return fin.size();}
 
 	int& operator[](std::vector<int>::size_type n)
@@ -146,16 +198,48 @@ public:
 	const int& operator[](std::vector<int>::size_type n) const
 	{return fin[n];}
 
-	void swap(special_aho& _a)
-	{
-		trie.swap(_a.trie);
-		fin.swap(_a.fin);
-	}
-
-	const std::pair<std::string, const_string>& pattern(std::vector<std::pair<std::string, const_string> >::size_type n) const
+	const std::pair<std::string, T>& pattern(typename std::vector<std::pair<std::string, T> >::size_type n) const
 	{return patterns[n];}
 
-	void set_patterns(const std::vector<std::pair<std::string, const_string> >& new_patterns);
-
+	void set_patterns(const std::vector<std::pair<std::string, T> >& new_patterns);
 	void find(const std::string& text);
 };
+
+template<class T>
+void special_aho<T>::set_patterns(const std::vector<std::pair<std::string, T> >& new_patterns)
+{
+	patterns = new_patterns;
+	// clear Trie
+	delete root;
+	root = new node;
+	root->fail = root->long_sh_pat = root;
+	// Build Trie
+	for(unsigned i = 0, s = patterns.size(); i < s; ++i)
+		insert(patterns[i].first, i);
+	add_fails(); // add fail and long_sh_pat edges
+}
+
+template<class T>
+void special_aho<T>::find(const std::string& text)
+{
+	// clear fin
+	fin.resize(text.size());
+	node::_ptr actual = root, found; // actual node and auxiliary pointer (to finding patterns)
+	for(unsigned i = 0, s = text.size(); i < s; ++i)
+	{
+		// we search for node wich has soon with key == *i
+		while(actual != root && actual->son[static_cast<unsigned char>(text[i])] == NULL)
+			actual = actual->fail;
+		// if we find this son (else actual == root)
+		if(actual->son[static_cast<unsigned char>(text[i])] != NULL)
+			actual = actual->son[static_cast<unsigned char>(text[i])];
+		// default value (if none pattern will be found)
+		fin[i] = -1;
+		// if actual node is pattern then we'll add it to fin
+		if(actual->is_pattern)
+			fin[i - patterns[actual->pattern_id].first.size() + 1] = actual->pattern_id;
+		// find orher patterns
+		else if((found = actual->long_sh_pat) != root)
+			fin[i - patterns[found->pattern_id].first.size() + 1] = found->pattern_id;
+	}
+}
