@@ -1,9 +1,13 @@
+export
 
 all:
-	make -C src $(MFLAGS)
+	make -C src
 
 debug:
-	make -C src debug $(MFLAGS)
+	make -C src debug
 
 clean:
 	make -C src clean
+
+mrproper:
+	make -C src mrproper

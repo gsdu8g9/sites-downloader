@@ -1,29 +1,35 @@
+export
 # Compile commands
 ifeq ($(shell clang > /dev/null 2> /dev/null; echo $$?), $(shell echo 1))
-export CC = clang
+CC = clang
 else
-export CC = gcc
+CC = gcc
 endif
 ifeq ($(shell clang++ > /dev/null 2> /dev/null; echo $$?), $(shell echo 1))
-export CXX = clang++
-export LINK = clang++
+CXX = clang++
+LINK = clang++
 else
-export CXX = g++
-export LINK = g++
+CXX = g++
+LINK = g++
 endif
 
-# Shell commands
-export CFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O3 -c
-export CXXFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O3 -c -std=c++11
-export LFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -s -O3 -pthread -std=c++11
-export RM = rm -f
+CFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O3 -c
+CXXFLAGS := $(CFLAGS) -std=c++11
+LFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -s -O3 -std=c++11
 
-.PHONY: all clean
+# Shell commands
+MV = mv -f
+CP = cp -f -r
+UPDATE = $(CP) -u
+RM = rm -f
+MKDIR = mkdir -p
+
+.PHONY: all debug clean
 
 all: ../sd
 
 debug:
-	make -C . CXX=$(CXX)\ -DDEBUG CC=$(CC)\ -DDEBUG
+	make all CXX='$(CXX) -DDEBUG' CC='$(CC) -DDEBUG'
 
 ../sd: main.o functions.o aho.o
 	$(LINK) $^ $(LFLAGS) -o $@
@@ -39,3 +45,6 @@ aho.o: aho.cpp aho.hpp
 
 clean:
 	$(RM) *.o
+
+mrproper: clean
+	$(RM) ../CTH
