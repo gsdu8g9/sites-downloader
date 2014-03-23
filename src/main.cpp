@@ -12,6 +12,8 @@
 #include <csignal>
 #include <fstream>
 
+#define eprint(...) fprintf(stderr, __VA_ARGS__)
+
 #ifdef DEBUG
 #define LOGS
 #define D(x) x
@@ -173,9 +175,9 @@ MutexQueue<unsigned> free_threads;
 
 vector<thread> threads;
 
-string server, root_dir, download_command;
+string server, root_dir, download_command, download_command_no_extention;
 
-CompressedTrie<empty> wrong_sites_base;
+CompressedTrie<empty> wrong_sites_base, extentions;
 CompressedTrie<bool> files_base;
 CompressedTrie<CompressedTrie<bool>::iterator> sites_base;
 IgnoreTrie ignored_sites;
@@ -230,6 +232,7 @@ public:
 
 void download(int thread_id)
 {
+	LOGN("trololo");
 	string site;
 download_function_begin:
 	if(download_queue.empty())
@@ -244,14 +247,16 @@ download_function_begin:
 	if(site.empty()) goto download_exit;
 	sites_base.insert(site);
 	/////////////
+	string & used_download_command = extentions.find(site.substr(site.size() > 3 ? site.size()-4 : 0)) == extentions.end() ? download_command : download_command_no_extention;
+	/////////////
 	loging.lock();
 	cout << "\033[01;34mDownloading: " << site << "\033[00m\n" << flush;
 	loging.unlock();
 	string tmp_file_name=string(tmp_dir.name())+"download"+myto_string(thread_id);
 #ifdef DEBUG
-	cerr << download_command+to_shell(site)+" 2> "+tmp_file_name << endl;
+	cerr << used_download_command+to_shell(site)+" 2> "+tmp_file_name << endl;
 #endif
-	if(0==system(download_command+to_shell(site)+" 2> "+tmp_file_name))
+	if(0==system(used_download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
 		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file;
 		char apostrophe_begin[]={'`', '\0'}, apostrophe_end[]={'\'', '\0'};
@@ -648,6 +653,7 @@ int main(int argc, char const **argv)
 	if(0==server.compare(0, 4, "www."))
 	server.erase(0, 4);
 	download_command="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --adjust-extension --directory-prefix="+to_shell(server)+" -nc ";
+	download_command_no_extention="wget --trust-server-names --no-check-certificate  --connect-timeout=23 --tries=3 --max-redirect=4 -x -nH --directory-prefix="+to_shell(server)+" -nc ";
 	LOGN(server);
 	system("pwd > "+string(tmp_dir.name())+"/pwd");
 	root_dir=GetFileContents(string(tmp_dir.name())+"/pwd");
@@ -656,6 +662,10 @@ int main(int argc, char const **argv)
 	// Initialize model_parse
 	vector<pair<string, const_string> > parse_patterns{make_pair("href=", link), make_pair("src=", link), make_pair("url(", link), make_pair("HREF=", link), make_pair("SRC=", link)};
 	model_parse.set_patterns(parse_patterns);
+	// Add no-extention-download extentions
+	char const * t[]={".ttf", ".woff", ".otf"};
+	for(unsigned i = 0, s = sizeof(t) / sizeof(char const *); i < s; ++i)
+		extentions.insert(t[i]);
 	// Run downloading
 	threads[0]=thread(download, 0);
 	global_lock.lock();

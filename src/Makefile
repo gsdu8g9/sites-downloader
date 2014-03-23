@@ -15,7 +15,7 @@ endif
 
 CFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O3 -c
 CXXFLAGS := $(CFLAGS) -std=c++11
-LFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -s -O3 -std=c++11
+LFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -s -O3 -std=c++11 -pthread
 
 # Shell commands
 MV = mv -f
