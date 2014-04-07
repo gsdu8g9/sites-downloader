@@ -29,7 +29,7 @@ MKDIR = mkdir -p
 all: ../sd
 
 debug:
-	make all CXX='$(CXX) -DDEBUG' CC='$(CC) -DDEBUG'
+	make all CC='$(CC) -DDEBUG' CXX='$(CXX) -DDEBUG' LINK='$(LINK) -DDEBUG'
 
 ../sd: main.o functions.o aho.o
 	$(LINK) $^ $(LFLAGS) -o $@
