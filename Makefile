@@ -6,6 +6,9 @@ all:
 debug:
 	make -C src debug
 
+full-debug:
+	make -C src full-debug
+
 clean:
 	make -C src clean
 

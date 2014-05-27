@@ -31,6 +31,9 @@ all: ../sd
 debug:
 	make all CC='$(CC) -DDEBUG' CXX='$(CXX) -DDEBUG' LINK='$(LINK) -DDEBUG'
 
+full-debug:
+	make all CC='$(CC) -DDEBUG' CXX='$(CXX) -DDEBUG' LINK='$(LINK) -DDEBUG' CFLAGS='-Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O0 -g -c' LFLAGS=' -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O0 -g -std=c++11 -pthread'
+
 ../sd: main.o functions.o aho.o
 	$(LINK) $^ $(LFLAGS) -o $@
 
