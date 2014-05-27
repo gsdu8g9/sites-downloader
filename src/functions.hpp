@@ -18,3 +18,6 @@ void eraseHTTPprefix(std::string& str);
 std::string convert_from_HTML(const std::string& str);
 bool is_number(const std::string&);
 int to_int(const std::string&);
+
+inline bool file_exist(const std::string& name)
+{return !system(("stat "+to_shell(name)+" 2> /dev/null > /dev/null").c_str());}

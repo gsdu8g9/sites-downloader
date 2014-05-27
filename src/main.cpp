@@ -16,11 +16,11 @@
 
 #ifdef DEBUG
 #define LOGS
-#define D(x) x
+#define D(...) __VA_ARGS__
 #define LOGN(x) std::cerr << #x << ": " << x << endl;
 #define LOG(x) std::cerr << #x << ": " << x << flush;
 #else
-#define D(x)
+#define D(...)
 #define LOGN(x)
 #define LOG(x)
 #endif
@@ -175,6 +175,7 @@ MutexQueue<unsigned> free_threads;
 
 vector<thread> threads;
 
+bool url_char[256]={};
 string server, root_dir, download_command, download_command_no_extention;
 
 CompressedTrie<empty> wrong_sites_base, extentions;
@@ -259,7 +260,7 @@ download_function_begin:
 	if(0==system(used_download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
 		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file;
-		char apostrophe_begin[]={'`', '\0'}, apostrophe_end[]={'\'', '\0'};
+		/*char apostrophe_begin[]={'`', '\0'}, apostrophe_end[]={'\'', '\0'};
 		// char apostrophe_begin[]={226, 128, 152}, apostrophe_end[]={226, 128, 153, '\0'};
 		for(int i=3, tfs=tmp_file.size(); i<tfs; ++i)
 		{
@@ -270,8 +271,21 @@ download_function_begin:
 					downloaded_file_name+=tmp_file[i];
 				break;
 			}
+		}*/
+		{
+			deque<int> kmp_results = kmp(tmp_file, server);
+			if(kmp_results.empty())
+				goto download_error;
+			uint i = kmp_results.back();
+			downloaded_file_name = server;
+			D(for(uint j = i; j < tmp_file.size(); ++j)
+				cout << tmp_file[j];)
+			while(++i < tmp_file.size() && url_char[static_cast<unsigned char>(tmp_file[i])])
+				downloaded_file_name += tmp_file[i];
+			D(cout << "\n\033[01;32mExtracted: " << downloaded_file_name << "\033[00m\n" << flush;)
 		}
-		if(downloaded_file_name.empty()) goto download_error;
+		if(downloaded_file_name.empty() || !file_exist(downloaded_file_name))
+			goto download_error;
 		sites_base.lock();
 		*sites_base.find(site)=files_base.insert(downloaded_file_name).first;
 		sites_base.unlock();
@@ -536,7 +550,7 @@ int main(int argc, char const **argv)
 	signal(_NSIG, control_exit);
 	if(argc<2)
 	{
-		cout << "Usage: sd [options]... site... \nSites have to belong to one server\nOptions:\n    --enable-links-origin   Enables showing links origin (file)\n    --disable-links-origin  Disables showing links origin (file)\n    -i PAGE_URL             Set ignore urls with prefix PAGE_URL\n    -w WRONGS_FILE          Repair/continue download page, WRONGS_FILE is file to which the program prints the error logs, you can use only one this option\n    -j [N], --jobs[=N]      Allow N jobs at once" << endl;
+		cout << "Usage: sd [options]... site... \nSites have to belong to one server\nOptions:\n    --enable-links-origin   Enables showing links origin (file)\n    --disable-links-origin  Disables showing links origin (file)\n    -i PAGE_URL             Set ignore urls with prefix PAGE_URL\n    -j [N], --jobs[=N]      Allow N jobs at once" << endl;
 		exit(1);
 	}
 	for(int i=1; i<argc; ++i)
@@ -634,6 +648,15 @@ int main(int argc, char const **argv)
 		}
 		else download_queue.push(argv[i]);
 	}
+	// setup url_char
+	for(unsigned char i = 'A'; i <= 'Z'; ++i)
+		url_char[i] = true;
+	for(unsigned char i = 'a'; i <= 'z'; ++i)
+		url_char[i] = true;
+	for(unsigned char i = '0'; i <= '9'; ++i)
+		url_char[i] = true;
+	url_char[static_cast<unsigned char>('/')] = url_char[static_cast<unsigned char>('_')] = url_char[static_cast<unsigned char>('-')] = url_char[static_cast<unsigned char>('%')] = url_char[static_cast<unsigned char>('?')] = url_char[static_cast<unsigned char>('#')] = url_char[static_cast<unsigned char>('.')] = url_char[static_cast<unsigned char>('[')] = url_char[static_cast<unsigned char>(']')] = url_char[static_cast<unsigned char>('=')] = url_char[static_cast<unsigned char>('<')] = url_char[static_cast<unsigned char>('>')] = url_char[static_cast<unsigned char>('&')] = url_char[static_cast<unsigned char>(':')] = url_char[static_cast<unsigned char>('(')] = url_char[static_cast<unsigned char>(')')] = url_char[static_cast<unsigned char>('~')] = url_char[static_cast<unsigned char>(' ')] = url_char[static_cast<unsigned char>('@')] = true;
+	// start work
 	cerr << THREADS << endl;
 	global_lock.lock();
 	threads.resize(THREADS);
