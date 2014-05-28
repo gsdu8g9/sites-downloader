@@ -164,7 +164,7 @@ public:
 using namespace std;
 
 unsigned THREADS=1;
-bool show_links_origin=false;
+bool show_links_origin=false, debug_mode=false;
 
 mutex global_lock, loging;
 
@@ -278,11 +278,15 @@ download_function_begin:
 				goto download_error;
 			uint i = kmp_results.back();
 			downloaded_file_name = server;
-			D(for(uint j = i; j < tmp_file.size(); ++j)
-				cout << tmp_file[j];)
+			loging.lock();
+			if(debug_mode)
+				for(uint j = i - server.size() + 1; j < tmp_file.size(); ++j)
+					cerr << tmp_file[j];
 			while(++i < tmp_file.size() && url_char[static_cast<unsigned char>(tmp_file[i])])
 				downloaded_file_name += tmp_file[i];
-			D(cout << "\n\033[01;32mExtracted: " << downloaded_file_name << "\033[00m\n" << flush;)
+			if(debug_mode)
+				cerr << "\n\033[01;32mExtracted: " << downloaded_file_name << "\033[00m\n" << flush;
+			loging.unlock();
 		}
 		if(downloaded_file_name.empty() || !file_exist(downloaded_file_name))
 			goto download_error;
@@ -550,7 +554,7 @@ int main(int argc, char const **argv)
 	signal(_NSIG, control_exit);
 	if(argc<2)
 	{
-		cout << "Usage: sd [options]... site... \nSites have to belong to one server\nOptions:\n    --enable-links-origin   Enables showing links origin (file)\n    --disable-links-origin  Disables showing links origin (file)\n    -i PAGE_URL             Set ignore urls with prefix PAGE_URL\n    -j [N], --jobs[=N]      Allow N jobs at once" << endl;
+		cout << "Usage: sd [options]... site... \nSites have to belong to one server\nOptions:\n    --enable-links-origin   Enables showing links origin (file)\n    --disable-links-origin  Disables showing links origin (file)\n    --debug                 Enables Debug mode\n    -i PAGE_URL             Set ignore urls with prefix PAGE_URL\n    -j [N], --jobs[=N]      Allow N jobs at once" << endl;
 		exit(1);
 	}
 	for(int i=1; i<argc; ++i)
@@ -560,6 +564,8 @@ int main(int argc, char const **argv)
 			show_links_origin=true;
 		else if(0==memcmp(argv[i], "--disable-links-origin", 22))
 			show_links_origin=false;
+		else if(0==memcmp(argv[i], "--debug", 7))
+			debug_mode=true;
 		else if(0==memcmp(argv[i], "-i", 2))
 		{
 			string site(argv[i]+2);
@@ -583,29 +589,6 @@ int main(int argc, char const **argv)
 				exit(1);
 			}
 			have_wrongs_file=true;
-			// string _s;
-			// for(int j=2; argv[i][j]!='\0'; ++j)
-			// 	_s+=argv[i][j];
-			// fstream wr(_s.c_str(), ios::in);
-			// if(wr.good())
-			// {
-			// 	string kit;
-			// 	getline(wr, kit);
-			// 	var_base::make_from_memoty_dump(kit);
-			// 	getline(wr,server);
-			// 	while(wr.good())
-			// 	{
-			// 		getline(wr,kit);
-			// 		if(!kit.empty()/* && !var_base::find_var(kit)*/)
-			// 			{sites.push(kit);cout << "\t" << kit << endl;}
-			// 	}
-			// }
-			// else
-			// {
-			// 	cout << "error opening file: " << _s << "!" << endl;
-			// 	abort();
-			// }
-			// wr.close();
 		}
 		else if(0==memcmp(argv[i], "-j", 2))
 		{
@@ -655,7 +638,7 @@ int main(int argc, char const **argv)
 		url_char[i] = true;
 	for(unsigned char i = '0'; i <= '9'; ++i)
 		url_char[i] = true;
-	url_char[static_cast<unsigned char>('/')] = url_char[static_cast<unsigned char>('_')] = url_char[static_cast<unsigned char>('-')] = url_char[static_cast<unsigned char>('%')] = url_char[static_cast<unsigned char>('?')] = url_char[static_cast<unsigned char>('#')] = url_char[static_cast<unsigned char>('.')] = url_char[static_cast<unsigned char>('[')] = url_char[static_cast<unsigned char>(']')] = url_char[static_cast<unsigned char>('=')] = url_char[static_cast<unsigned char>('<')] = url_char[static_cast<unsigned char>('>')] = url_char[static_cast<unsigned char>('&')] = url_char[static_cast<unsigned char>(':')] = url_char[static_cast<unsigned char>('(')] = url_char[static_cast<unsigned char>(')')] = url_char[static_cast<unsigned char>('~')] = url_char[static_cast<unsigned char>(' ')] = url_char[static_cast<unsigned char>('@')] = true;
+	url_char[static_cast<unsigned char>('/')] = url_char[static_cast<unsigned char>('_')] = url_char[static_cast<unsigned char>('-')] = url_char[static_cast<unsigned char>('+')] = url_char[static_cast<unsigned char>('*')] = url_char[static_cast<unsigned char>('^')] = url_char[static_cast<unsigned char>('$')] = url_char[static_cast<unsigned char>('%')] = url_char[static_cast<unsigned char>('?')] = url_char[static_cast<unsigned char>('#')] = url_char[static_cast<unsigned char>('.')] = url_char[static_cast<unsigned char>('[')] = url_char[static_cast<unsigned char>(']')] = url_char[static_cast<unsigned char>('=')] = url_char[static_cast<unsigned char>('<')] = url_char[static_cast<unsigned char>('>')] = url_char[static_cast<unsigned char>('&')] = url_char[static_cast<unsigned char>(':')] = url_char[static_cast<unsigned char>('(')] = url_char[static_cast<unsigned char>(')')] = url_char[static_cast<unsigned char>('~')] = url_char[static_cast<unsigned char>(' ')] = url_char[static_cast<unsigned char>('@')] = url_char[static_cast<unsigned char>('!')] = true;
 	// start work
 	cerr << THREADS << endl;
 	global_lock.lock();
