@@ -58,6 +58,9 @@ public:
 	{return _M_str;}
 };
 
+unsigned THREADS=1;
+std::mutex global_lock, loging;
+
 template<typename type>
 class MutexQueue
 {
@@ -103,6 +106,8 @@ public:
 	{
 		once_operation.lock();
 		que.push(str);
+		// We have one more free thread
+		if(que.size()==THREADS) global_lock.unlock();
 		once_operation.unlock();
 	}
 
@@ -163,10 +168,7 @@ public:
 
 using namespace std;
 
-unsigned THREADS=1;
 bool show_links_origin=false, debug_mode=false;
-
-mutex global_lock, loging;
 
 MutexQueue<std::string> download_queue;
 // first - file name, second - site adress
@@ -240,15 +242,20 @@ download_function_begin:
 	{
 	download_exit:
 		free_threads.push(thread_id);
-		// We have one more free thread
-		if(free_threads.size()==THREADS) global_lock.unlock();
 		return;
 	}
 	site=download_queue.extract();
 	if(site.empty()) goto download_exit;
 	sites_base.insert(site);
-	/////////////
-	string & used_download_command = extentions.find(site.substr(site.size() > 3 ? site.size()-4 : 0)) == extentions.end() ? download_command : download_command_no_extention;
+	///////////// Fixes bug with unnecessary adding ".html"
+	string extent;
+	for(int i = site.size()-1; i >= 0; --i)
+		if(site[i] == '.')
+		{
+			extent = site.substr(i);
+			break;
+		}
+	string & used_download_command = extentions.find(extent) == extentions.end() ? download_command : download_command_no_extention;
 	/////////////
 	loging.lock();
 	cout << "\033[01;34mDownloading: " << site << "\033[00m\n" << flush;
@@ -260,18 +267,7 @@ download_function_begin:
 	if(0==system(used_download_command+to_shell(site)+" 2> "+tmp_file_name))
 	{
 		string tmp_file=GetFileContents(tmp_file_name), downloaded_file_name, downloaded_file;
-		/*char apostrophe_begin[]={'`', '\0'}, apostrophe_end[]={'\'', '\0'};
-		// char apostrophe_begin[]={226, 128, 152}, apostrophe_end[]={226, 128, 153, '\0'};
-		for(int i=3, tfs=tmp_file.size(); i<tfs; ++i)
-		{
-			if(0==tmp_file.compare(i-1, 1, apostrophe_begin))
-			{
-				--i;
-				while(++i+1<tfs && tmp_file.compare(i, 1, apostrophe_end)!=0)
-					downloaded_file_name+=tmp_file[i];
-				break;
-			}
-		}*/
+		// Extracts name of downloaded file
 		{
 			deque<int> kmp_results = kmp(tmp_file, server);
 			if(kmp_results.empty())
@@ -329,7 +325,7 @@ download_function_begin:
 				original_new_site=new_site;
 				LOGN(new_site);
 				if(new_site[0]=='?') new_site=site+new_site;
-				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://"))
+				if(0==new_site.compare(0, 7, "http://") || 0==new_site.compare(0, 8, "https://") || 0==new_site.compare(0, 2, "//"))
 				{
 					eraseHTTPprefix(new_site);
 					if(!(0==new_site.compare(0, server.size(), server) || 0==new_site.compare(0, 4+server.size(), "www."+server)))
@@ -669,7 +665,7 @@ int main(int argc, char const **argv)
 	vector<pair<string, const_string> > parse_patterns{make_pair("href=", link), make_pair("src=", link), make_pair("url(", link), make_pair("HREF=", link), make_pair("SRC=", link)};
 	model_parse.set_patterns(parse_patterns);
 	// Add no-extention-download extentions
-	char const * t[]={".ttf", ".woff", ".otf"};
+	char const * t[]={".ttf", ".woff", ".otf", ".png", ".jpg", ".jpeg", ".gif", ".css", ".js"};
 	for(unsigned i = 0, s = sizeof(t) / sizeof(char const *); i < s; ++i)
 		extentions.insert(t[i]);
 	// Run downloading
