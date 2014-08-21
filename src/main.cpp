@@ -1,6 +1,10 @@
 #include "functions.hpp"
-#include "aho.hpp"
-#include "trie.hpp"
+#include "Algorithms/text/aho.hpp"
+
+#define TRIE_USE_MUTEX
+#include "Algorithms/text/trie.hpp"
+#undef TRIE_USE_MUTEX
+
 #include <iostream>
 #include <thread>
 #include <mutex>

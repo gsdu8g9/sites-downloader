@@ -37,13 +37,13 @@ full-debug:
 ../sd: main.o functions.o aho.o
 	$(LINK) $^ $(LFLAGS) -o $@
 
-main.o: main.cpp functions.hpp aho.hpp trie.hpp
+main.o: main.cpp functions.hpp Algorithms/text/aho.hpp Algorithms/text/trie.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 functions.o: functions.cpp functions.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-aho.o: aho.cpp aho.hpp
+aho.o: Algorithms/text/aho.cpp Algorithms/text/aho.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 clean:
