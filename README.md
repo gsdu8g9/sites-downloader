@@ -1,12 +1,11 @@
-sites-downloader
-================
+# sites-downloader [![Build Status](https://travis-ci.org/krzyk240/sites-downloader.svg?branch=master)](https://travis-ci.org/krzyk240/sites-downloader)
 
 Program to download static websites
 
-####Usage:
+#### Usage:
 sd [options]... site...
 
-####Options:
+#### Options:
 + --enable-links-origin   Enables showing links origin (file)
 + --disable-links-origin  Disables showing links origin (file)
 + --debug 	              Enables Debug mode
