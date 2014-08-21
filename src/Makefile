@@ -1,17 +1,4 @@
 export
-# Compile commands
-ifeq ($(shell clang > /dev/null 2> /dev/null; echo $$?), $(shell echo 1))
-CC = clang
-else
-CC = gcc
-endif
-ifeq ($(shell clang++ > /dev/null 2> /dev/null; echo $$?), $(shell echo 1))
-CXX = clang++
-LINK = clang++
-else
-CXX = g++
-LINK = g++
-endif
 
 CFLAGS = -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O3 -c
 CXXFLAGS := $(CFLAGS) -std=c++11
@@ -35,7 +22,7 @@ full-debug:
 	make all CC='$(CC) -DDEBUG' CXX='$(CXX) -DDEBUG' LINK='$(LINK) -DDEBUG' CFLAGS='-Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O0 -g -c' LFLAGS=' -Wall -Wextra -Wabi -Weffc++ -Wshadow -Wfloat-equal -Wno-unused-result -O0 -g -std=c++11 -pthread'
 
 ../sd: main.o functions.o aho.o
-	$(LINK) $^ $(LFLAGS) -o $@
+	$(CXX) $^ $(LFLAGS) -o $@
 
 main.o: main.cpp functions.hpp Algorithms/text/aho.hpp Algorithms/text/trie.hpp
 	$(CXX) $< $(CXXFLAGS) -o $@
