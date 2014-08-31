@@ -560,13 +560,13 @@ int main(int argc, char const **argv)
 	for(int i=1; i<argc; ++i)
 	{
 		static bool have_wrongs_file=false;
-		if(0==memcmp(argv[i], "--enable-links-origin", 21))
+		if(0==strcmp(argv[i], "--enable-links-origin"))
 			show_links_origin=true;
-		else if(0==memcmp(argv[i], "--disable-links-origin", 22))
+		else if(0==strcmp(argv[i], "--disable-links-origin"))
 			show_links_origin=false;
-		else if(0==memcmp(argv[i], "--debug", 7))
+		else if(0==strcmp(argv[i], "--debug"))
 			debug_mode=true;
-		else if(0==memcmp(argv[i], "-i", 2))
+		else if(0==strcmp(argv[i], "-i"))
 		{
 			string site(argv[i]+2);
 			if(site.empty())
@@ -581,7 +581,7 @@ int main(int argc, char const **argv)
 			cout << "Ignored prefix: " << site << endl;
 			ignored_sites.insert(site);
 		}
-		else if(0==memcmp(argv[i], "-w", 2))
+		else if(0==strcmp(argv[i], "-w"))
 		{
 			if(have_wrongs_file)
 			{
@@ -590,7 +590,7 @@ int main(int argc, char const **argv)
 			}
 			have_wrongs_file=true;
 		}
-		else if(0==memcmp(argv[i], "-j", 2))
+		else if(0==strcmp(argv[i], "-j"))
 		{
 			string number(argv[i]+2);
 			if(number.empty() && ++i<argc)
@@ -603,7 +603,7 @@ int main(int argc, char const **argv)
 				return 1;
 			}
 		}
-		else if(0==memcmp(argv[i], "--jobs", 6))
+		else if(0==strcmp(argv[i], "--jobs"))
 		{
 			string number;
 			if(argv[i][6]=='=')
