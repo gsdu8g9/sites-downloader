@@ -259,7 +259,7 @@ download_function_begin:
 			extent = site.substr(i);
 			break;
 		}
-	string & used_download_command = extentions.find(extent) == extentions.end() ? download_command : download_command_no_extention;
+	const string & used_download_command = extentions.find(extent) == extentions.end() ? download_command : download_command_no_extention;
 	/////////////
 	loging.lock();
 	cout << "\033[01;34mDownloading: " << site << "\033[00m\n" << flush;

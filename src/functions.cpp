@@ -160,16 +160,26 @@ return out;
 string GetFileContents(const string& file_name)
 {
 	FILE* file = fopen(file_name.c_str(), "r");
+	if (file == NULL)
+		return "";
 	// Determine file size
-	fseek(file, 0, SEEK_END);
-	size_t size = ftell(file);
-	char* content = new char[size];
-	rewind(file);
-	fread(content, sizeof(char), size, file);
-	fclose(file);
-	string out(content, content+size);
-	delete[] content;
-return out;
+	if (fseek(file, 0, SEEK_END) == -1)
+		return "";
+	long size = ftell(file);
+	if (size == -1L)
+		return "";
+	try {
+		char* content = new char[size];
+		rewind(file);
+		fread(content, sizeof(char), size, file);
+		fclose(file);
+
+		string out(content, content+size);
+		delete[] content;
+		return out;
+	} catch (...) {
+		return "";
+	}
 }
 
 void eraseHTTPprefix(std::string& str)
