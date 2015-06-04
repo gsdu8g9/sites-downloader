@@ -14,8 +14,8 @@ addons:
     - g++-4.9
     
 install:
-  - export CC=gcc-4.9
-  - export CXX=g++-4.9
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 50
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 50
 
 script: make -j
 
