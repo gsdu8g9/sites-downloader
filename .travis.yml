@@ -8,7 +8,10 @@ cache: apt
 
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
     packages:
+    - g++
     - g++-4.9
     
 install:
